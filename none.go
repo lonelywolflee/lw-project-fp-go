@@ -51,3 +51,14 @@ func (n None[T]) Get() any {
 func (n None[T]) Filter(fn func(T) bool) Maybe[T] {
 	return n
 }
+
+// Then ignores the given function and returns None.
+// Since None has no value, there's nothing to apply the function to.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	result := none.Then(func(x int) { println(x) }) // Empty[int]()
+func (n None[T]) Then(fn func(T)) Maybe[T] {
+	return n
+}

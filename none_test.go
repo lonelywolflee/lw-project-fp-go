@@ -180,3 +180,79 @@ func TestNone_Filter(t *testing.T) {
 		}
 	})
 }
+
+func TestNone_Then(t *testing.T) {
+	t.Run("returns None and ignores function", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.Then(func(x int) { /* no-op */ })
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("None.Then should return None type")
+		}
+	})
+
+	t.Run("does not execute the function", func(t *testing.T) {
+		none := Empty[int]()
+		executed := false
+		result := none.Then(func(x int) {
+			executed = true
+		})
+
+		if executed {
+			t.Error("None.Then should not execute the function")
+		}
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("None.Then should return None type")
+		}
+	})
+
+	t.Run("function can panic but never called", func(t *testing.T) {
+		none := Empty[string]()
+		result := none.Then(func(x string) {
+			panic("this should never be called")
+		})
+
+		_, ok := result.(None[string])
+		if !ok {
+			t.Fatal("None.Then should return None type without executing function")
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		var sideEffect int
+
+		result := Empty[int]().
+			Then(func(x int) { sideEffect = x }).
+			Map(func(x int) any { return x * 2 })
+
+		if sideEffect != 0 {
+			t.Errorf("side effect should not be triggered, got %d", sideEffect)
+		}
+
+		_, ok := result.(None[any])
+		if !ok {
+			t.Fatal("chained Then and Map on None should return None type")
+		}
+	})
+
+	t.Run("preserves None through multiple Then calls", func(t *testing.T) {
+		var callCount int
+
+		result := Empty[int]().
+			Then(func(x int) { callCount++ }).
+			Then(func(x int) { callCount++ }).
+			Then(func(x int) { callCount++ })
+
+		if callCount != 0 {
+			t.Errorf("no Then calls should execute, got %d calls", callCount)
+		}
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("multiple Then calls on None should preserve None type")
+		}
+	})
+}

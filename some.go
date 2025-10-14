@@ -67,3 +67,17 @@ func (s Some[T]) Filter(fn func(T) bool) Maybe[T] {
 		return Empty[T]()
 	})
 }
+
+// Then applies the given function to the value inside Some.
+// If the function panics, the panic is caught and converted to a Failure.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.Then(func(x int) { println(x) }) // Just(5)
+func (s Some[T]) Then(fn func(T)) Maybe[T] {
+	return Do(func() Maybe[T] {
+		fn(s.GetValue())
+		return s
+	})
+}

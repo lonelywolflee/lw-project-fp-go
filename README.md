@@ -152,6 +152,23 @@ result := lwfp.Just(10).
 // result contains Some(20)
 ```
 
+### Side Effects with Then
+
+```go
+// Then executes a function for side effects without changing the value
+result := lwfp.Just(10).
+    Then(func(x int) { fmt.Printf("Processing: %d\n", x) }).
+    Map(func(x int) any { return x * 2 })
+// Prints "Processing: 10", result contains Some(20)
+
+// Useful for logging in processing pipelines
+result := lwfp.Just("data").
+    Then(func(x string) { log.Info("Received", x) }).
+    Filter(func(x string) bool { return len(x) > 0 }).
+    Then(func(x string) { log.Info("Validated", x) }).
+    Map(func(x string) any { return strings.ToUpper(x) })
+```
+
 ### Using the Do Helper
 
 ```go
@@ -173,6 +190,7 @@ type Maybe[T any] interface {
     Map(fn func(T) any) Maybe[any]
     FlatMap(fn func(T) Maybe[any]) Maybe[any]
     Filter(fn func(T) bool) Maybe[T]
+    Then(fn func(T)) Maybe[T]
 }
 ```
 
@@ -184,6 +202,7 @@ func (s Some[T]) GetValue() T
 func (s Some[T]) Map(fn func(T) any) Maybe[any]
 func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
+func (s Some[T]) Then(fn func(T)) Maybe[T]
 ```
 
 #### `None[T]` Struct
@@ -194,6 +213,7 @@ func (n None[T]) Get() any // returns nil
 func (n None[T]) Map(fn func(T) any) Maybe[any]
 func (n None[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (n None[T]) Filter(fn func(T) bool) Maybe[T]
+func (n None[T]) Then(fn func(T)) Maybe[T]
 ```
 
 #### `Failure[T]` Struct
@@ -204,6 +224,7 @@ func (f Failure[T]) GetError() error
 func (f Failure[T]) Map(fn func(T) any) Maybe[any]
 func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
+func (f Failure[T]) Then(fn func(T)) Maybe[T]
 ```
 
 ### Constructor Functions

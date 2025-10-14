@@ -310,3 +310,142 @@ func TestSome_Filter(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_Then(t *testing.T) {
+	t.Run("executes function and returns original Some", func(t *testing.T) {
+		executed := false
+		var capturedValue int
+
+		some := Just(10)
+		result := some.Then(func(x int) {
+			executed = true
+			capturedValue = x
+		})
+
+		if !executed {
+			t.Error("Then should execute the function")
+		}
+		if capturedValue != 10 {
+			t.Errorf("expected captured value 10, got %d", capturedValue)
+		}
+
+		resultSome, ok := result.(Some[int])
+		if !ok {
+			t.Fatal("Then should return Some type")
+		}
+		if resultSome.GetValue() != 10 {
+			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("can be used for logging", func(t *testing.T) {
+		var loggedValue string
+
+		result := Just("hello").Then(func(x string) {
+			loggedValue = "Logged: " + x
+		})
+
+		if loggedValue != "Logged: hello" {
+			t.Errorf("expected 'Logged: hello', got %s", loggedValue)
+		}
+
+		resultSome, ok := result.(Some[string])
+		if !ok {
+			t.Fatal("Then should return Some type")
+		}
+		if resultSome.GetValue() != "hello" {
+			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		}
+	})
+
+	t.Run("catches panic and converts to Failure", func(t *testing.T) {
+		some := Just(5)
+		result := some.Then(func(x int) {
+			panic("then panic")
+		})
+
+		failure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Then should return Failure when panic occurs")
+		}
+		if failure.GetError().Error() != "then panic" {
+			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		}
+	})
+
+	t.Run("catches panic with error type", func(t *testing.T) {
+		some := Just(5)
+		testErr := errors.New("then error")
+		result := some.Then(func(x int) {
+			panic(testErr)
+		})
+
+		failure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Then should return Failure when panic occurs")
+		}
+		if failure.GetError() != testErr {
+			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		var sideEffect int
+
+		result := Just(10).
+			Then(func(x int) { sideEffect = x }).
+			Map(func(x int) any { return x * 2 })
+
+		if sideEffect != 10 {
+			t.Errorf("expected side effect to be 10, got %d", sideEffect)
+		}
+
+		resultSome, ok := result.(Some[any])
+		if !ok {
+			t.Fatal("chained Then and Map should return Some")
+		}
+		if resultSome.GetValue() != 20 {
+			t.Errorf("expected 20, got %v", resultSome.GetValue())
+		}
+	})
+
+	t.Run("can be chained multiple times", func(t *testing.T) {
+		var log []string
+
+		result := Just(5).
+			Then(func(x int) { log = append(log, "first") }).
+			Then(func(x int) { log = append(log, "second") }).
+			Then(func(x int) { log = append(log, "third") })
+
+		if len(log) != 3 {
+			t.Errorf("expected 3 log entries, got %d", len(log))
+		}
+		if log[0] != "first" || log[1] != "second" || log[2] != "third" {
+			t.Errorf("expected [first second third], got %v", log)
+		}
+
+		resultSome, ok := result.(Some[int])
+		if !ok {
+			t.Fatal("chained Then should return Some type")
+		}
+		if resultSome.GetValue() != 5 {
+			t.Errorf("expected 5, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("does not change value", func(t *testing.T) {
+		original := Just(42)
+		result := original.Then(func(x int) {
+			// Try to modify (won't affect original)
+			x = 100
+		})
+
+		resultSome, ok := result.(Some[int])
+		if !ok {
+			t.Fatal("Then should return Some type")
+		}
+		if resultSome.GetValue() != 42 {
+			t.Errorf("value should remain 42, got %d", resultSome.GetValue())
+		}
+	})
+}

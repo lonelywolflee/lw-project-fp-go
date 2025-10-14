@@ -277,3 +277,113 @@ func TestFailure_Filter(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_Then(t *testing.T) {
+	t.Run("propagates error and ignores function", func(t *testing.T) {
+		err := errors.New("original error")
+		failure := Fail[int](err)
+		result := failure.Then(func(x int) { /* no-op */ })
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Failure.Then should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("does not execute the function", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		executed := false
+		result := failure.Then(func(x int) {
+			executed = true
+		})
+
+		if executed {
+			t.Error("Failure.Then should not execute the function")
+		}
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Failure.Then should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("function can panic but never called", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[string](err)
+		result := failure.Then(func(x string) {
+			panic("this should never be called")
+		})
+
+		resultFailure, ok := result.(Failure[string])
+		if !ok {
+			t.Fatal("Failure.Then should return Failure type without executing function")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		err := errors.New("persistent error")
+		var sideEffect int
+
+		result := Fail[int](err).
+			Then(func(x int) { sideEffect = x }).
+			Map(func(x int) any { return x * 2 })
+
+		if sideEffect != 0 {
+			t.Errorf("side effect should not be triggered, got %d", sideEffect)
+		}
+
+		resultFailure, ok := result.(Failure[any])
+		if !ok {
+			t.Fatal("chained Then and Map should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("preserves error through multiple Then calls", func(t *testing.T) {
+		err := errors.New("validation failed")
+		var callCount int
+
+		result := Fail[int](err).
+			Then(func(x int) { callCount++ }).
+			Then(func(x int) { callCount++ }).
+			Then(func(x int) { callCount++ })
+
+		if callCount != 0 {
+			t.Errorf("no Then calls should execute, got %d calls", callCount)
+		}
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("multiple Then calls should preserve Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("preserves error in railway pattern with Then", func(t *testing.T) {
+		err := errors.New("validation failed")
+		result := Fail[int](err).
+			Then(func(x int) { /* log */ })
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Then should preserve Failure in railway pattern")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+}

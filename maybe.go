@@ -36,6 +36,17 @@ type Maybe[T any] interface {
 	//	result := Just(10).Filter(func(x int) bool { return x > 5 }) // Just(10)
 	//	result := Just(3).Filter(func(x int) bool { return x > 5 })  // Empty[int]()
 	Filter(fn func(T) bool) Maybe[T]
+
+	// Then applies a side-effect function to the value inside Maybe and returns the same Maybe.
+	// This is useful for performing actions like logging or debugging without changing the value.
+	// If Maybe is None or Failure, the function is not applied and the state is preserved.
+	// If the function panics, it's caught and converted to a Failure.
+	//
+	// Example:
+	//
+	//	result := Just(10).Then(func(x int) { fmt.Println(x) }) // prints 10, returns Just(10)
+	//	result := Empty[int]().Then(func(x int) { fmt.Println(x) }) // Empty[int](), nothing printed
+	Then(fn func(T)) Maybe[T]
 }
 
 // Just creates a Maybe that contains a value (Some).

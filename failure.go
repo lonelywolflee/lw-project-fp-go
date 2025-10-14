@@ -57,3 +57,15 @@ func (f Failure[T]) GetError() error {
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T] {
 	return f
 }
+
+// Then ignores the given function and returns Failure.
+// Since Failure represents an error state, no function application is performed.
+// The error is preserved and wrapped in a new Failure.
+//
+// Example:
+//
+//	failure := Fail[int](errors.New("failed"))
+//	result := failure.Then(func(x int) { println(x) }) // Fail[int](error)
+func (f Failure[T]) Then(fn func(T)) Maybe[T] {
+	return f
+}
