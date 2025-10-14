@@ -1,21 +1,52 @@
 package lwfp
 
+// Some represents a Maybe that contains a value.
+// It is one of the three concrete implementations of the Maybe interface.
+// Some wraps a non-nil value and provides transformation methods that operate on this value.
 type Some[T any] struct {
 	v T
 }
 
+// Map applies the given function to the value inside Some and wraps the result in a new Maybe.
+// If the function panics, the panic is caught and converted to a Failure.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.Map(func(x int) any { return x * 2 }) // Just(10)
 func (s Some[T]) Map(fn func(T) any) (result Maybe[any]) {
 	return Do(func() Maybe[any] {
-		return Just(fn(s.Get().(T)))
+		return Just(fn(s.GetValue()))
 	})
 }
 
+// FlatMap applies the given function to the value inside Some.
+// Unlike Map, the function is expected to return a Maybe, which prevents nested Maybe structures.
+// If the function panics, the panic is caught and converted to a Failure.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.FlatMap(func(x int) Maybe[any] {
+//	    if x > 0 {
+//	        return Just(x * 2)
+//	    }
+//	    return Empty[any]()
+//	})
 func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
 	return Do(func() Maybe[any] {
-		return fn(s.Get().(T))
+		return fn(s.GetValue())
 	})
 }
 
-func (s Some[T]) Get() any {
+// GetValue returns the value wrapped in Some.
+// Unlike the Get() method from the Maybe interface, this returns the concrete type T
+// without requiring type assertion.
+//
+// Example:
+//
+//	some := Just(42)
+//	value := some.GetValue() // returns 42 as int (no type assertion needed)
+func (s Some[T]) GetValue() T {
 	return s.v
 }
