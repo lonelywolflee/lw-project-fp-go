@@ -569,3 +569,183 @@ func TestFailure_OrElseDefault(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_MatchThen(t *testing.T) {
+	t.Run("executes failureFn and returns original Failure", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		someCalled := false
+		noneCalled := false
+		failureCalled := false
+		var capturedError error
+
+		result := failure.MatchThen(
+			func(x int) { someCalled = true },
+			func() { noneCalled = true },
+			func(e error) {
+				failureCalled = true
+				capturedError = e
+			},
+		)
+
+		if someCalled {
+			t.Error("someFn should not be called")
+		}
+		if noneCalled {
+			t.Error("noneFn should not be called")
+		}
+		if !failureCalled {
+			t.Error("failureFn should be called")
+		}
+		if capturedError != err {
+			t.Errorf("expected captured error %v, got %v", err, capturedError)
+		}
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("MatchThen should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("can be used for error logging", func(t *testing.T) {
+		err := errors.New("database error")
+		failure := Fail[string](err)
+		var log string
+
+		result := failure.MatchThen(
+			func(x string) { log = "Got value: " + x },
+			func() { log = "No value" },
+			func(e error) { log = "Error: " + e.Error() },
+		)
+
+		if log != "Error: database error" {
+			t.Errorf("expected 'Error: database error', got %s", log)
+		}
+
+		resultFailure, ok := result.(Failure[string])
+		if !ok {
+			t.Fatal("MatchThen should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("catches panic in failureFn and converts to Failure", func(t *testing.T) {
+		err := errors.New("original error")
+		failure := Fail[int](err)
+
+		result := failure.MatchThen(
+			func(x int) {},
+			func() {},
+			func(e error) { panic("failureFn panic") },
+		)
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("MatchThen should return Failure when failureFn panics")
+		}
+		if resultFailure.GetError().Error() != "failureFn panic" {
+			t.Errorf("expected panic message, got %s", resultFailure.GetError().Error())
+		}
+	})
+
+	t.Run("someFn and noneFn can panic but never called", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		failureCalled := false
+
+		result := failure.MatchThen(
+			func(x int) { panic("someFn should not be called") },
+			func() { panic("noneFn should not be called") },
+			func(e error) { failureCalled = true },
+		)
+
+		if !failureCalled {
+			t.Error("failureFn should be called")
+		}
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("MatchThen should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		err := errors.New("test error")
+		var sideEffect string
+
+		result := Fail[int](err).
+			MatchThen(
+				func(x int) { sideEffect = "some" },
+				func() { sideEffect = "none" },
+				func(e error) { sideEffect = "Processing error" },
+			).
+			Map(func(x int) any { return x * 2 })
+
+		if sideEffect != "Processing error" {
+			t.Errorf("expected 'Processing error', got %s", sideEffect)
+		}
+
+		resultFailure, ok := result.(Failure[any])
+		if !ok {
+			t.Fatal("chained operations should return Failure")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("preserves error through multiple MatchThen calls", func(t *testing.T) {
+		err := errors.New("persistent error")
+		var log []string
+
+		result := Fail[int](err).
+			MatchThen(
+				func(x int) { log = append(log, "some") },
+				func() { log = append(log, "none") },
+				func(e error) { log = append(log, "first") },
+			).
+			MatchThen(
+				func(x int) { log = append(log, "some") },
+				func() { log = append(log, "none") },
+				func(e error) { log = append(log, "second") },
+			)
+
+		if len(log) != 2 || log[0] != "first" || log[1] != "second" {
+			t.Errorf("expected [first second], got %v", log)
+		}
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("chained MatchThen should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("preserves error state", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		result := failure.MatchThen(
+			func(x int) {},
+			func() {},
+			func(e error) { /* no-op */ },
+		)
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("MatchThen should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+}

@@ -1,6 +1,7 @@
 package lwfp
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -391,6 +392,173 @@ func TestNone_OrElseDefault(t *testing.T) {
 
 		if result1 != 10 || result2 != 10 {
 			t.Errorf("expected both results to be 10, got %d and %d", result1, result2)
+		}
+	})
+}
+
+func TestNone_MatchThen(t *testing.T) {
+	t.Run("executes noneFn and returns original None", func(t *testing.T) {
+		none := Empty[int]()
+		someCalled := false
+		noneCalled := false
+		failureCalled := false
+
+		result := none.MatchThen(
+			func(x int) { someCalled = true },
+			func() { noneCalled = true },
+			func(err error) { failureCalled = true },
+		)
+
+		if someCalled {
+			t.Error("someFn should not be called")
+		}
+		if !noneCalled {
+			t.Error("noneFn should be called")
+		}
+		if failureCalled {
+			t.Error("failureFn should not be called")
+		}
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("MatchThen should return None type")
+		}
+	})
+
+	t.Run("can be used for logging", func(t *testing.T) {
+		none := Empty[string]()
+		var log string
+
+		result := none.MatchThen(
+			func(x string) { log = "Got value: " + x },
+			func() { log = "No value" },
+			func(err error) { log = "Error: " + err.Error() },
+		)
+
+		if log != "No value" {
+			t.Errorf("expected 'No value', got %s", log)
+		}
+
+		_, ok := result.(None[string])
+		if !ok {
+			t.Fatal("MatchThen should return None type")
+		}
+	})
+
+	t.Run("catches panic in noneFn and converts to Failure", func(t *testing.T) {
+		none := Empty[int]()
+
+		result := none.MatchThen(
+			func(x int) {},
+			func() { panic("noneFn panic") },
+			func(err error) {},
+		)
+
+		failure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("MatchThen should return Failure when noneFn panics")
+		}
+		if failure.GetError().Error() != "noneFn panic" {
+			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		}
+	})
+
+	t.Run("catches panic with error type in noneFn", func(t *testing.T) {
+		none := Empty[int]()
+		testErr := errors.New("test error")
+
+		result := none.MatchThen(
+			func(x int) {},
+			func() { panic(testErr) },
+			func(err error) {},
+		)
+
+		failure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("MatchThen should return Failure when noneFn panics")
+		}
+		if failure.GetError() != testErr {
+			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		}
+	})
+
+	t.Run("someFn and failureFn can panic but never called", func(t *testing.T) {
+		none := Empty[int]()
+		noneCalled := false
+
+		result := none.MatchThen(
+			func(x int) { panic("someFn should not be called") },
+			func() { noneCalled = true },
+			func(err error) { panic("failureFn should not be called") },
+		)
+
+		if !noneCalled {
+			t.Error("noneFn should be called")
+		}
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("MatchThen should return None type")
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		var sideEffect string
+
+		result := Empty[int]().
+			MatchThen(
+				func(x int) { sideEffect = "some" },
+				func() { sideEffect = "Processing None" },
+				func(err error) { sideEffect = "error" },
+			).
+			Map(func(x int) any { return x * 2 })
+
+		if sideEffect != "Processing None" {
+			t.Errorf("expected 'Processing None', got %s", sideEffect)
+		}
+
+		_, ok := result.(None[any])
+		if !ok {
+			t.Fatal("chained operations should return None")
+		}
+	})
+
+	t.Run("can be chained multiple times", func(t *testing.T) {
+		var log []string
+
+		result := Empty[int]().
+			MatchThen(
+				func(x int) { log = append(log, "some") },
+				func() { log = append(log, "first") },
+				func(err error) { log = append(log, "error") },
+			).
+			MatchThen(
+				func(x int) { log = append(log, "some") },
+				func() { log = append(log, "second") },
+				func(err error) { log = append(log, "error") },
+			)
+
+		if len(log) != 2 || log[0] != "first" || log[1] != "second" {
+			t.Errorf("expected [first second], got %v", log)
+		}
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("chained MatchThen should return None type")
+		}
+	})
+
+	t.Run("preserves None state", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.MatchThen(
+			func(x int) {},
+			func() { /* no-op */ },
+			func(err error) {},
+		)
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("MatchThen should return None type")
 		}
 	})
 }

@@ -211,6 +211,47 @@ config := fetchConfig().
     OrElseDefault(DefaultConfig)
 ```
 
+### Pattern Matching with MatchThen
+
+```go
+// MatchThen provides exhaustive pattern matching for all Maybe states
+result := fetchUser(id).MatchThen(
+    func(user User) {
+        log.Info("Found user", user.Name)
+    },
+    func() {
+        log.Warn("User not found")
+    },
+    func(err error) {
+        log.Error("Database error", err)
+    },
+)
+
+// Returns the original Maybe unchanged, allowing for chaining
+value := processData().
+    MatchThen(
+        func(data string) { metrics.RecordSuccess() },
+        func() { metrics.RecordEmpty() },
+        func(err error) { metrics.RecordError(err) },
+    ).
+    Map(func(data string) any { return transform(data) }).
+    OrElseDefault(defaultData)
+
+// Practical example: HTTP request handling
+response := makeAPICall().
+    MatchThen(
+        func(data Response) {
+            fmt.Printf("Success: %d items\n", len(data.Items))
+        },
+        func() {
+            fmt.Println("No data received")
+        },
+        func(err error) {
+            fmt.Printf("API Error: %v\n", err)
+        },
+    )
+```
+
 ## API Reference
 
 ### Types
@@ -224,6 +265,7 @@ type Maybe[T any] interface {
     Then(fn func(T)) Maybe[T]
     OrElseGet(fn func() T) T
     OrElseDefault(v T) T
+    MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 }
 ```
 
@@ -238,6 +280,7 @@ func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
 func (s Some[T]) Then(fn func(T)) Maybe[T]
 func (s Some[T]) OrElseGet(fn func() T) T
 func (s Some[T]) OrElseDefault(v T) T
+func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
 #### `None[T]` Struct
@@ -251,6 +294,7 @@ func (n None[T]) Filter(fn func(T) bool) Maybe[T]
 func (n None[T]) Then(fn func(T)) Maybe[T]
 func (n None[T]) OrElseGet(fn func() T) T
 func (n None[T]) OrElseDefault(v T) T
+func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
 #### `Failure[T]` Struct
@@ -264,6 +308,7 @@ func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
 func (f Failure[T]) Then(fn func(T)) Maybe[T]
 func (f Failure[T]) OrElseGet(fn func() T) T
 func (f Failure[T]) OrElseDefault(v T) T
+func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
 ### Constructor Functions

@@ -69,6 +69,37 @@ type Maybe[T any] interface {
 	//	value := Empty[int]().OrElseDefault(0)  // returns 0
 	//	value := Fail[int](err).OrElseDefault(0)  // returns 0
 	OrElseDefault(v T) T
+
+	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
+	// This provides a type-safe way to handle all three Maybe states (Some, None, Failure) with custom behavior.
+	// The function returns the original Maybe unchanged, making it suitable for chaining.
+	// If any of the executed functions panics, the panic is caught and converted to a Failure.
+	//
+	// Parameters:
+	//   - someFn: Function called when Maybe is Some, receives the wrapped value
+	//   - noneFn: Function called when Maybe is None
+	//   - failureFn: Function called when Maybe is Failure, receives the error
+	//
+	// Example:
+	//
+	//	result := Just(42).MatchThen(
+	//	    func(x int) { fmt.Printf("Value: %d\n", x) },
+	//	    func() { fmt.Println("No value") },
+	//	    func(err error) { fmt.Printf("Error: %v\n", err) },
+	//	) // prints "Value: 42", returns Just(42)
+	//
+	//	result := Empty[int]().MatchThen(
+	//	    func(x int) { fmt.Printf("Value: %d\n", x) },
+	//	    func() { fmt.Println("No value") },
+	//	    func(err error) { fmt.Printf("Error: %v\n", err) },
+	//	) // prints "No value", returns Empty[int]()
+	//
+	//	result := Fail[int](err).MatchThen(
+	//	    func(x int) { fmt.Printf("Value: %d\n", x) },
+	//	    func() { fmt.Println("No value") },
+	//	    func(err error) { fmt.Printf("Error: %v\n", err) },
+	//	) // prints "Error: <error message>", returns Fail[int](err)
+	MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 }
 
 // Just creates a Maybe that contains a value (Some).

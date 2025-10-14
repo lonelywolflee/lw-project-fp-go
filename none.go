@@ -84,3 +84,20 @@ func (n None[T]) OrElseGet(fn func() T) T {
 func (n None[T]) OrElseDefault(v T) T {
 	return v
 }
+
+// MatchThen applies the given functions based on the type of Maybe.
+// If Maybe is Some, the some function is called with the value inside Some.
+// If Maybe is None, the none function is called.
+// If Maybe is Failure, the failure function is called with the error inside Failure.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	result := none.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "none"
+//	result := Fail[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
+func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
+	return Do(func() Maybe[T] {
+		noneFn()
+		return n
+	})
+}
