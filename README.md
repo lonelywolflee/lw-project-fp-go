@@ -28,7 +28,7 @@ package main
 
 import (
     "fmt"
-    lwfp "github.com/lonelywolflee/lw-project-fp-go"
+    "github.com/lonelywolflee/lw-project-fp-go"
 )
 
 func main() {
