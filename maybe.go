@@ -24,6 +24,18 @@ type Maybe[T any] interface {
 	// If Maybe is None or Failure, the transformation is skipped and the state is preserved.
 	// If the function panics, it's caught and converted to a Failure.
 	FlatMap(fn func(T) Maybe[any]) Maybe[any]
+
+	// Filter applies a predicate function to the value inside Maybe.
+	// If the predicate returns true, the Maybe is unchanged.
+	// If the predicate returns false, the Maybe becomes None.
+	// If Maybe is None or Failure, the predicate is not applied and the state is preserved.
+	// If the function panics, it's caught and converted to a Failure.
+	//
+	// Example:
+	//
+	//	result := Just(10).Filter(func(x int) bool { return x > 5 }) // Just(10)
+	//	result := Just(3).Filter(func(x int) bool { return x > 5 })  // Empty[int]()
+	Filter(fn func(T) bool) Maybe[T]
 }
 
 // Just creates a Maybe that contains a value (Some).

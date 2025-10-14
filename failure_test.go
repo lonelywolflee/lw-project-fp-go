@@ -194,3 +194,86 @@ func TestFailure_FlatMap(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_Filter(t *testing.T) {
+	t.Run("propagates error and ignores predicate", func(t *testing.T) {
+		err := errors.New("original error")
+		failure := Fail[int](err)
+		result := failure.Filter(func(x int) bool { return x > 5 })
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Failure.Filter should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("does not execute the predicate function", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		executed := false
+		result := failure.Filter(func(x int) bool {
+			executed = true
+			return true
+		})
+
+		if executed {
+			t.Error("Failure.Filter should not execute the predicate function")
+		}
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Failure.Filter should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("predicate can panic but never called", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[string](err)
+		result := failure.Filter(func(x string) bool {
+			panic("this should never be called")
+		})
+
+		resultFailure, ok := result.(Failure[string])
+		if !ok {
+			t.Fatal("Failure.Filter should return Failure type without executing predicate")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		err := errors.New("persistent error")
+		result := Fail[int](err).
+			Filter(func(x int) bool { return x > 5 }).
+			Map(func(x int) any { return x * 2 })
+
+		resultFailure, ok := result.(Failure[any])
+		if !ok {
+			t.Fatal("chained Filter and Map should return Failure type")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+
+	t.Run("preserves error in railway pattern", func(t *testing.T) {
+		err := errors.New("validation failed")
+		result := Fail[int](err).
+			Filter(func(x int) bool { return x > 0 })
+
+		resultFailure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Filter should preserve Failure in railway pattern")
+		}
+		if resultFailure.GetError() != err {
+			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		}
+	})
+}

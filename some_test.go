@@ -191,3 +191,122 @@ func TestSome_FlatMap(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_Filter(t *testing.T) {
+	t.Run("returns Some when predicate is true", func(t *testing.T) {
+		some := Just(10)
+		result := some.Filter(func(x int) bool { return x > 5 })
+
+		resultSome, ok := result.(Some[int])
+		if !ok {
+			t.Fatal("Filter should return Some when predicate is true")
+		}
+		if resultSome.GetValue() != 10 {
+			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("returns None when predicate is false", func(t *testing.T) {
+		some := Just(3)
+		result := some.Filter(func(x int) bool { return x > 5 })
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("Filter should return None when predicate is false")
+		}
+	})
+
+	t.Run("handles string filtering", func(t *testing.T) {
+		some := Just("hello")
+		result := some.Filter(func(x string) bool { return len(x) > 3 })
+
+		resultSome, ok := result.(Some[string])
+		if !ok {
+			t.Fatal("Filter should return Some when predicate is true")
+		}
+		if resultSome.GetValue() != "hello" {
+			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		}
+	})
+
+	t.Run("filters out short strings", func(t *testing.T) {
+		some := Just("hi")
+		result := some.Filter(func(x string) bool { return len(x) > 3 })
+
+		_, ok := result.(None[string])
+		if !ok {
+			t.Fatal("Filter should return None when predicate is false")
+		}
+	})
+
+	t.Run("catches panic and converts to Failure", func(t *testing.T) {
+		some := Just(5)
+		result := some.Filter(func(x int) bool {
+			panic("filter panic")
+		})
+
+		failure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Filter should return Failure when panic occurs")
+		}
+		if failure.GetError().Error() != "filter panic" {
+			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		}
+	})
+
+	t.Run("catches panic with error type", func(t *testing.T) {
+		some := Just(5)
+		testErr := errors.New("filter error")
+		result := some.Filter(func(x int) bool {
+			panic(testErr)
+		})
+
+		failure, ok := result.(Failure[int])
+		if !ok {
+			t.Fatal("Filter should return Failure when panic occurs")
+		}
+		if failure.GetError() != testErr {
+			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		result := Just(10).
+			Filter(func(x int) bool { return x > 5 }).
+			Map(func(x int) any { return x * 2 })
+
+		resultSome, ok := result.(Some[any])
+		if !ok {
+			t.Fatal("chained Filter and Map should return Some")
+		}
+		if resultSome.GetValue() != 20 {
+			t.Errorf("expected 20, got %v", resultSome.GetValue())
+		}
+	})
+
+	t.Run("returns None when filter fails in chain", func(t *testing.T) {
+		result := Just(3).
+			Filter(func(x int) bool { return x > 5 }).
+			Map(func(x int) any { return x * 2 })
+
+		_, ok := result.(None[any])
+		if !ok {
+			t.Fatal("chained Filter should return None when predicate is false")
+		}
+	})
+
+	t.Run("handles complex predicate", func(t *testing.T) {
+		some := Just(42)
+		result := some.Filter(func(x int) bool {
+			return x%2 == 0 && x > 10
+		})
+
+		resultSome, ok := result.(Some[int])
+		if !ok {
+			t.Fatal("Filter should return Some when complex predicate is true")
+		}
+		if resultSome.GetValue() != 42 {
+			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		}
+	})
+}

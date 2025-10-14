@@ -133,6 +133,25 @@ result := validateAge(25).
 // Success path only executes if all steps succeed
 ```
 
+### Filtering Values
+
+```go
+// Filter keeps values that satisfy a predicate
+result := lwfp.Just(10).
+    Filter(func(x int) bool { return x > 5 })
+// result contains Some(10)
+
+result := lwfp.Just(3).
+    Filter(func(x int) bool { return x > 5 })
+// result contains None
+
+// Filter can be chained with other operations
+result := lwfp.Just(10).
+    Filter(func(x int) bool { return x > 5 }).
+    Map(func(x int) any { return x * 2 })
+// result contains Some(20)
+```
+
 ### Using the Do Helper
 
 ```go
@@ -153,6 +172,7 @@ result := lwfp.Do(func() lwfp.Maybe[int] {
 type Maybe[T any] interface {
     Map(fn func(T) any) Maybe[any]
     FlatMap(fn func(T) Maybe[any]) Maybe[any]
+    Filter(fn func(T) bool) Maybe[T]
 }
 ```
 
@@ -163,6 +183,7 @@ type Some[T any] struct { /* ... */ }
 func (s Some[T]) GetValue() T
 func (s Some[T]) Map(fn func(T) any) Maybe[any]
 func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
+func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
 ```
 
 #### `None[T]` Struct
@@ -172,6 +193,7 @@ type None[T any] struct{}
 func (n None[T]) Get() any // returns nil
 func (n None[T]) Map(fn func(T) any) Maybe[any]
 func (n None[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
+func (n None[T]) Filter(fn func(T) bool) Maybe[T]
 ```
 
 #### `Failure[T]` Struct
@@ -181,6 +203,7 @@ type Failure[T any] struct { /* ... */ }
 func (f Failure[T]) GetError() error
 func (f Failure[T]) Map(fn func(T) any) Maybe[any]
 func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
+func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
 ```
 
 ### Constructor Functions

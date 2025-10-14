@@ -50,3 +50,20 @@ func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
 func (s Some[T]) GetValue() T {
 	return s.v
 }
+
+// Filter applies the given function to the value inside Some and returns a new Maybe.
+// If the function returns false, the value is discarded and the result is None.
+// If the function panics, the panic is caught and converted to a Failure.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.Filter(func(x int) bool { return x > 0 }) // Just(5)
+func (s Some[T]) Filter(fn func(T) bool) Maybe[T] {
+	return Do(func() Maybe[T] {
+		if fn(s.GetValue()) {
+			return s
+		}
+		return Empty[T]()
+	})
+}

@@ -117,3 +117,66 @@ func TestNone_FlatMap(t *testing.T) {
 		}
 	})
 }
+
+func TestNone_Filter(t *testing.T) {
+	t.Run("returns None and ignores predicate", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.Filter(func(x int) bool { return x > 5 })
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("None.Filter should return None type")
+		}
+	})
+
+	t.Run("does not execute the predicate function", func(t *testing.T) {
+		none := Empty[int]()
+		executed := false
+		result := none.Filter(func(x int) bool {
+			executed = true
+			return true
+		})
+
+		if executed {
+			t.Error("None.Filter should not execute the predicate function")
+		}
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("None.Filter should return None type")
+		}
+	})
+
+	t.Run("predicate can panic but never called", func(t *testing.T) {
+		none := Empty[string]()
+		result := none.Filter(func(x string) bool {
+			panic("this should never be called")
+		})
+
+		_, ok := result.(None[string])
+		if !ok {
+			t.Fatal("None.Filter should return None type without executing predicate")
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		result := Empty[int]().
+			Filter(func(x int) bool { return x > 5 }).
+			Map(func(x int) any { return x * 2 })
+
+		_, ok := result.(None[any])
+		if !ok {
+			t.Fatal("chained Filter and Map on None should return None type")
+		}
+	})
+
+	t.Run("preserves None through Filter", func(t *testing.T) {
+		result := Empty[int]().
+			Filter(func(x int) bool { return x > 10 })
+
+		_, ok := result.(None[int])
+		if !ok {
+			t.Fatal("Filter on None should preserve None type")
+		}
+	})
+}

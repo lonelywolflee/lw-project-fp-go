@@ -45,3 +45,15 @@ func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
 func (f Failure[T]) GetError() error {
 	return f.e
 }
+
+// Filter ignores the given function and returns Failure.
+// Since Failure represents an error state, no filtering is applied.
+// The error is preserved and wrapped in a new Failure.
+//
+// Example:
+//
+//	failure := Fail[int](errors.New("failed"))
+//	result := failure.Filter(func(x int) bool { return x > 0 }) // Fail[int](error)
+func (f Failure[T]) Filter(fn func(T) bool) Maybe[T] {
+	return f
+}
