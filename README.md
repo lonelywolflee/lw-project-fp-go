@@ -18,7 +18,7 @@ A lightweight, type-safe functional programming library for Go that implements t
 ## Installation
 
 ```bash
-go get github.com/lonelywolflee/lwfp
+go get github.com/lonelywolflee/lw-project-fp-go
 ```
 
 ## Quick Start
@@ -28,7 +28,7 @@ package main
 
 import (
     "fmt"
-    "github.com/lonelywolflee/lwfp"
+    lwfp "github.com/lonelywolflee/lw-project-fp-go"
 )
 
 func main() {
@@ -366,8 +366,8 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 1. Clone the repository
 ```bash
-git clone https://github.com/lonelywolflee/lwfp.git
-cd lwfp
+git clone https://github.com/lonelywolflee/lw-project-fp-go.git
+cd lw-project-fp-go
 ```
 
 2. Run tests
