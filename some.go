@@ -81,3 +81,25 @@ func (s Some[T]) Then(fn func(T)) Maybe[T] {
 		return s
 	})
 }
+
+// OrElseGet returns the value inside Some.
+// Since Some contains a value, the provided function is never called.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.OrElseGet(func() int { return 10 }) // returns 5 (not 10)
+func (s Some[T]) OrElseGet(fn func() T) T {
+	return s.GetValue()
+}
+
+// OrElseDefault returns the value inside Some.
+// Since Some contains a value, the provided default value is ignored.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.OrElseDefault(10) // returns 5 (not 10)
+func (s Some[T]) OrElseDefault(v T) T {
+	return s.GetValue()
+}

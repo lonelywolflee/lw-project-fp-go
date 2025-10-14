@@ -387,3 +387,185 @@ func TestFailure_Then(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_OrElseGet(t *testing.T) {
+	t.Run("calls function and returns result", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		called := false
+		result := failure.OrElseGet(func() int {
+			called = true
+			return 42
+		})
+
+		if !called {
+			t.Error("OrElseGet should call the function when Failure has no value")
+		}
+		if result != 42 {
+			t.Errorf("expected 42, got %d", result)
+		}
+	})
+
+	t.Run("returns string from function", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[string](err)
+		result := failure.OrElseGet(func() string { return "default" })
+
+		if result != "default" {
+			t.Errorf("expected 'default', got %s", result)
+		}
+	})
+
+	t.Run("executes function every time", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		callCount := 0
+
+		result1 := failure.OrElseGet(func() int {
+			callCount++
+			return callCount
+		})
+		result2 := failure.OrElseGet(func() int {
+			callCount++
+			return callCount
+		})
+
+		if result1 != 1 {
+			t.Errorf("first call expected 1, got %d", result1)
+		}
+		if result2 != 2 {
+			t.Errorf("second call expected 2, got %d", result2)
+		}
+		if callCount != 2 {
+			t.Errorf("expected 2 function calls, got %d", callCount)
+		}
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[[]int](err)
+		result := failure.OrElseGet(func() []int { return []int{1, 2, 3} })
+
+		if len(result) != 3 {
+			t.Errorf("expected slice length 3, got %d", len(result))
+		}
+		if result[0] != 1 || result[1] != 2 || result[2] != 3 {
+			t.Errorf("expected [1 2 3], got %v", result)
+		}
+	})
+
+	t.Run("can return zero values", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		result := failure.OrElseGet(func() int { return 0 })
+
+		if result != 0 {
+			t.Errorf("expected 0, got %d", result)
+		}
+	})
+
+	t.Run("function can compute complex values", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		result := failure.OrElseGet(func() int {
+			sum := 0
+			for i := 1; i <= 10; i++ {
+				sum += i
+			}
+			return sum
+		})
+
+		if result != 55 {
+			t.Errorf("expected 55 (sum of 1-10), got %d", result)
+		}
+	})
+
+	t.Run("different errors still call function", func(t *testing.T) {
+		err1 := errors.New("error 1")
+		err2 := errors.New("error 2")
+
+		failure1 := Fail[int](err1)
+		failure2 := Fail[int](err2)
+
+		result1 := failure1.OrElseGet(func() int { return 10 })
+		result2 := failure2.OrElseGet(func() int { return 20 })
+
+		if result1 != 10 {
+			t.Errorf("expected 10, got %d", result1)
+		}
+		if result2 != 20 {
+			t.Errorf("expected 20, got %d", result2)
+		}
+	})
+}
+
+func TestFailure_OrElseDefault(t *testing.T) {
+	t.Run("returns the default value", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		result := failure.OrElseDefault(42)
+
+		if result != 42 {
+			t.Errorf("expected 42, got %d", result)
+		}
+	})
+
+	t.Run("returns string default value", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[string](err)
+		result := failure.OrElseDefault("default")
+
+		if result != "default" {
+			t.Errorf("expected 'default', got %s", result)
+		}
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[[]int](err)
+		result := failure.OrElseDefault([]int{1, 2, 3})
+
+		if len(result) != 3 {
+			t.Errorf("expected slice length 3, got %d", len(result))
+		}
+		if result[0] != 1 || result[1] != 2 || result[2] != 3 {
+			t.Errorf("expected [1 2 3], got %v", result)
+		}
+	})
+
+	t.Run("can return zero values", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		result := failure.OrElseDefault(0)
+
+		if result != 0 {
+			t.Errorf("expected 0, got %d", result)
+		}
+	})
+
+	t.Run("returns same default every time", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := Fail[int](err)
+		result1 := failure.OrElseDefault(10)
+		result2 := failure.OrElseDefault(10)
+
+		if result1 != 10 || result2 != 10 {
+			t.Errorf("expected both results to be 10, got %d and %d", result1, result2)
+		}
+	})
+
+	t.Run("different errors still return default", func(t *testing.T) {
+		err1 := errors.New("error 1")
+		err2 := errors.New("error 2")
+
+		failure1 := Fail[int](err1)
+		failure2 := Fail[int](err2)
+
+		result1 := failure1.OrElseDefault(100)
+		result2 := failure2.OrElseDefault(100)
+
+		if result1 != 100 || result2 != 100 {
+			t.Errorf("expected both results to be 100, got %d and %d", result1, result2)
+		}
+	})
+}

@@ -62,3 +62,25 @@ func (n None[T]) Filter(fn func(T) bool) Maybe[T] {
 func (n None[T]) Then(fn func(T)) Maybe[T] {
 	return n
 }
+
+// OrElseGet calls the provided function and returns its result.
+// Since None has no value, this method always executes the function to get a default value.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	result := none.OrElseGet(func() int { return 10 }) // returns 10
+func (n None[T]) OrElseGet(fn func() T) T {
+	return fn()
+}
+
+// OrElseDefault returns the provided default value.
+// Since None has no value, this method always returns the given default.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	result := none.OrElseDefault(10) // returns 10
+func (n None[T]) OrElseDefault(v T) T {
+	return v
+}

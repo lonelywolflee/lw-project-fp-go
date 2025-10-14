@@ -180,6 +180,37 @@ result := lwfp.Do(func() lwfp.Maybe[int] {
 })
 ```
 
+### Extracting Values with Defaults
+
+```go
+// OrElseGet provides a computed default value
+value := lwfp.Just(42).OrElseGet(func() int { return 0 })
+// Returns: 42 (the actual value)
+
+value := lwfp.Empty[int]().OrElseGet(func() int { return 0 })
+// Returns: 0 (computed default)
+
+value := lwfp.Fail[int](err).OrElseGet(func() int {
+    return computeDefault()
+})
+// Returns: result of computeDefault()
+
+// OrElseDefault provides a constant default value
+value := lwfp.Just(42).OrElseDefault(0)
+// Returns: 42 (the actual value)
+
+value := lwfp.Empty[int]().OrElseDefault(0)
+// Returns: 0 (constant default)
+
+value := lwfp.Fail[int](err).OrElseDefault(0)
+// Returns: 0 (constant default)
+
+// Practical example: config with fallback
+config := fetchConfig().
+    Filter(func(c Config) bool { return c.IsValid() }).
+    OrElseDefault(DefaultConfig)
+```
+
 ## API Reference
 
 ### Types
@@ -191,6 +222,8 @@ type Maybe[T any] interface {
     FlatMap(fn func(T) Maybe[any]) Maybe[any]
     Filter(fn func(T) bool) Maybe[T]
     Then(fn func(T)) Maybe[T]
+    OrElseGet(fn func() T) T
+    OrElseDefault(v T) T
 }
 ```
 
@@ -203,6 +236,8 @@ func (s Some[T]) Map(fn func(T) any) Maybe[any]
 func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
 func (s Some[T]) Then(fn func(T)) Maybe[T]
+func (s Some[T]) OrElseGet(fn func() T) T
+func (s Some[T]) OrElseDefault(v T) T
 ```
 
 #### `None[T]` Struct
@@ -214,6 +249,8 @@ func (n None[T]) Map(fn func(T) any) Maybe[any]
 func (n None[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (n None[T]) Filter(fn func(T) bool) Maybe[T]
 func (n None[T]) Then(fn func(T)) Maybe[T]
+func (n None[T]) OrElseGet(fn func() T) T
+func (n None[T]) OrElseDefault(v T) T
 ```
 
 #### `Failure[T]` Struct
@@ -225,6 +262,8 @@ func (f Failure[T]) Map(fn func(T) any) Maybe[any]
 func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
 func (f Failure[T]) Then(fn func(T)) Maybe[T]
+func (f Failure[T]) OrElseGet(fn func() T) T
+func (f Failure[T]) OrElseDefault(v T) T
 ```
 
 ### Constructor Functions

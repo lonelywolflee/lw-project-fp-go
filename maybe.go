@@ -47,6 +47,28 @@ type Maybe[T any] interface {
 	//	result := Just(10).Then(func(x int) { fmt.Println(x) }) // prints 10, returns Just(10)
 	//	result := Empty[int]().Then(func(x int) { fmt.Println(x) }) // Empty[int](), nothing printed
 	Then(fn func(T)) Maybe[T]
+
+	// OrElseGet returns the value inside Maybe if it exists (Some case),
+	// otherwise calls the provided function and returns its result (None or Failure case).
+	// This is useful for providing a computed default value when Maybe is empty or failed.
+	//
+	// Example:
+	//
+	//	value := Just(42).OrElseGet(func() int { return 0 })  // returns 42
+	//	value := Empty[int]().OrElseGet(func() int { return 0 })  // returns 0
+	//	value := Fail[int](err).OrElseGet(func() int { return 0 })  // returns 0
+	OrElseGet(fn func() T) T
+
+	// OrElseDefault returns the value inside Maybe if it exists (Some case),
+	// otherwise returns the provided default value (None or Failure case).
+	// This is useful for providing a constant default value when Maybe is empty or failed.
+	//
+	// Example:
+	//
+	//	value := Just(42).OrElseDefault(0)  // returns 42
+	//	value := Empty[int]().OrElseDefault(0)  // returns 0
+	//	value := Fail[int](err).OrElseDefault(0)  // returns 0
+	OrElseDefault(v T) T
 }
 
 // Just creates a Maybe that contains a value (Some).

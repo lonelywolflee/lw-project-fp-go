@@ -449,3 +449,112 @@ func TestSome_Then(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_OrElseGet(t *testing.T) {
+	t.Run("returns the value and does not call function", func(t *testing.T) {
+		some := Just(42)
+		called := false
+		result := some.OrElseGet(func() int {
+			called = true
+			return 0
+		})
+
+		if called {
+			t.Error("OrElseGet should not call the function when Some has a value")
+		}
+		if result != 42 {
+			t.Errorf("expected 42, got %d", result)
+		}
+	})
+
+	t.Run("returns string value without calling function", func(t *testing.T) {
+		some := Just("hello")
+		result := some.OrElseGet(func() string { return "default" })
+
+		if result != "hello" {
+			t.Errorf("expected 'hello', got %s", result)
+		}
+	})
+
+	t.Run("function can panic but never called", func(t *testing.T) {
+		some := Just(10)
+		result := some.OrElseGet(func() int {
+			panic("this should never be called")
+		})
+
+		if result != 10 {
+			t.Errorf("expected 10, got %d", result)
+		}
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		some := Just([]int{1, 2, 3})
+		result := some.OrElseGet(func() []int { return []int{} })
+
+		if len(result) != 3 {
+			t.Errorf("expected slice length 3, got %d", len(result))
+		}
+		if result[0] != 1 || result[1] != 2 || result[2] != 3 {
+			t.Errorf("expected [1 2 3], got %v", result)
+		}
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		some := Just(0)
+		result := some.OrElseGet(func() int { return 42 })
+
+		if result != 0 {
+			t.Errorf("expected 0 (the actual value), got %d", result)
+		}
+	})
+}
+
+func TestSome_OrElseDefault(t *testing.T) {
+	t.Run("returns the value and ignores default", func(t *testing.T) {
+		some := Just(42)
+		result := some.OrElseDefault(0)
+
+		if result != 42 {
+			t.Errorf("expected 42, got %d", result)
+		}
+	})
+
+	t.Run("returns string value ignoring default", func(t *testing.T) {
+		some := Just("hello")
+		result := some.OrElseDefault("default")
+
+		if result != "hello" {
+			t.Errorf("expected 'hello', got %s", result)
+		}
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		some := Just([]int{1, 2, 3})
+		result := some.OrElseDefault([]int{})
+
+		if len(result) != 3 {
+			t.Errorf("expected slice length 3, got %d", len(result))
+		}
+		if result[0] != 1 || result[1] != 2 || result[2] != 3 {
+			t.Errorf("expected [1 2 3], got %v", result)
+		}
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		some := Just(0)
+		result := some.OrElseDefault(42)
+
+		if result != 0 {
+			t.Errorf("expected 0 (the actual value), got %d", result)
+		}
+	})
+
+	t.Run("can use same value as default", func(t *testing.T) {
+		some := Just(10)
+		result := some.OrElseDefault(10)
+
+		if result != 10 {
+			t.Errorf("expected 10, got %d", result)
+		}
+	})
+}

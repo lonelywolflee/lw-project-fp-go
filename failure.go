@@ -69,3 +69,25 @@ func (f Failure[T]) Filter(fn func(T) bool) Maybe[T] {
 func (f Failure[T]) Then(fn func(T)) Maybe[T] {
 	return f
 }
+
+// OrElseGet calls the provided function and returns its result.
+// Since Failure represents an error state with no valid value, this method always executes the function to get a default value.
+//
+// Example:
+//
+//	failure := Fail[int](errors.New("failed"))
+//	result := failure.OrElseGet(func() int { return 10 }) // returns 10
+func (f Failure[T]) OrElseGet(fn func() T) T {
+	return fn()
+}
+
+// OrElseDefault returns the provided default value.
+// Since Failure represents an error state with no valid value, this method always returns the given default.
+//
+// Example:
+//
+//	failure := Fail[int](errors.New("failed"))
+//	result := failure.OrElseDefault(10) // returns 10
+func (f Failure[T]) OrElseDefault(v T) T {
+	return v
+}

@@ -256,3 +256,141 @@ func TestNone_Then(t *testing.T) {
 		}
 	})
 }
+
+func TestNone_OrElseGet(t *testing.T) {
+	t.Run("calls function and returns result", func(t *testing.T) {
+		none := Empty[int]()
+		called := false
+		result := none.OrElseGet(func() int {
+			called = true
+			return 42
+		})
+
+		if !called {
+			t.Error("OrElseGet should call the function when None has no value")
+		}
+		if result != 42 {
+			t.Errorf("expected 42, got %d", result)
+		}
+	})
+
+	t.Run("returns string from function", func(t *testing.T) {
+		none := Empty[string]()
+		result := none.OrElseGet(func() string { return "default" })
+
+		if result != "default" {
+			t.Errorf("expected 'default', got %s", result)
+		}
+	})
+
+	t.Run("executes function every time", func(t *testing.T) {
+		none := Empty[int]()
+		callCount := 0
+
+		result1 := none.OrElseGet(func() int {
+			callCount++
+			return callCount
+		})
+		result2 := none.OrElseGet(func() int {
+			callCount++
+			return callCount
+		})
+
+		if result1 != 1 {
+			t.Errorf("first call expected 1, got %d", result1)
+		}
+		if result2 != 2 {
+			t.Errorf("second call expected 2, got %d", result2)
+		}
+		if callCount != 2 {
+			t.Errorf("expected 2 function calls, got %d", callCount)
+		}
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		none := Empty[[]int]()
+		result := none.OrElseGet(func() []int { return []int{1, 2, 3} })
+
+		if len(result) != 3 {
+			t.Errorf("expected slice length 3, got %d", len(result))
+		}
+		if result[0] != 1 || result[1] != 2 || result[2] != 3 {
+			t.Errorf("expected [1 2 3], got %v", result)
+		}
+	})
+
+	t.Run("can return zero values", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.OrElseGet(func() int { return 0 })
+
+		if result != 0 {
+			t.Errorf("expected 0, got %d", result)
+		}
+	})
+
+	t.Run("function can compute complex values", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.OrElseGet(func() int {
+			sum := 0
+			for i := 1; i <= 10; i++ {
+				sum += i
+			}
+			return sum
+		})
+
+		if result != 55 {
+			t.Errorf("expected 55 (sum of 1-10), got %d", result)
+		}
+	})
+}
+
+func TestNone_OrElseDefault(t *testing.T) {
+	t.Run("returns the default value", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.OrElseDefault(42)
+
+		if result != 42 {
+			t.Errorf("expected 42, got %d", result)
+		}
+	})
+
+	t.Run("returns string default value", func(t *testing.T) {
+		none := Empty[string]()
+		result := none.OrElseDefault("default")
+
+		if result != "default" {
+			t.Errorf("expected 'default', got %s", result)
+		}
+	})
+
+	t.Run("works with different types", func(t *testing.T) {
+		none := Empty[[]int]()
+		result := none.OrElseDefault([]int{1, 2, 3})
+
+		if len(result) != 3 {
+			t.Errorf("expected slice length 3, got %d", len(result))
+		}
+		if result[0] != 1 || result[1] != 2 || result[2] != 3 {
+			t.Errorf("expected [1 2 3], got %v", result)
+		}
+	})
+
+	t.Run("can return zero values", func(t *testing.T) {
+		none := Empty[int]()
+		result := none.OrElseDefault(0)
+
+		if result != 0 {
+			t.Errorf("expected 0, got %d", result)
+		}
+	})
+
+	t.Run("returns same default every time", func(t *testing.T) {
+		none := Empty[int]()
+		result1 := none.OrElseDefault(10)
+		result2 := none.OrElseDefault(10)
+
+		if result1 != 10 || result2 != 10 {
+			t.Errorf("expected both results to be 10, got %d and %d", result1, result2)
+		}
+	})
+}
