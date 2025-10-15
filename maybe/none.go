@@ -86,6 +86,17 @@ func (n None[T]) OrElseDefault(v T) T {
 	return v
 }
 
+// FailIfEmpty converts None to Failure with the provided error.
+// This is useful for treating "empty" as an error condition in a processing pipeline.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	result := none.FailIfEmpty(errors.New("value required")) // returns Fail[int]("value required")
+func (n None[T]) FailIfEmpty(err error) Maybe[T] {
+	return Fail[T](err)
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.
@@ -94,7 +105,7 @@ func (n None[T]) OrElseDefault(v T) T {
 // Example:
 //
 //	none := Empty[int]()
-//	result := none.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "none"
+//	result := none.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) })                            // prints "none"
 //	result := Fail[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
 	return Do(func() Maybe[T] {

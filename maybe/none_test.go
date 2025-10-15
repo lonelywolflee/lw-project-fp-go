@@ -607,3 +607,153 @@ func TestNone_MatchThen(t *testing.T) {
 		}
 	})
 }
+
+func TestNone_FailIfEmpty(t *testing.T) {
+	t.Run("converts None to Failure with provided error", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		err := errors.New("value required")
+		result := none.FailIfEmpty(err)
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should convert None to Failure")
+		}
+		if failure.GetError() != err {
+			t.Errorf("expected error %v, got %v", err, failure.GetError())
+		}
+	})
+
+	t.Run("preserves error message", func(t *testing.T) {
+		none := maybe.Empty[string]()
+		err := errors.New("custom error message")
+		result := none.FailIfEmpty(err)
+
+		failure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("FailIfEmpty should convert None to Failure")
+		}
+		if failure.GetError().Error() != "custom error message" {
+			t.Errorf("expected 'custom error message', got %s", failure.GetError().Error())
+		}
+	})
+
+	t.Run("works with different error types", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		err := errors.New("not found")
+		result := none.FailIfEmpty(err)
+
+		_, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should convert None to Failure")
+		}
+
+		// Verify Get() returns the error
+		value, getErr := result.Get()
+		if getErr != err {
+			t.Errorf("Get() should return the error, got %v", getErr)
+		}
+		if value != 0 {
+			t.Errorf("Get() should return zero value, got %d", value)
+		}
+	})
+
+	t.Run("works with different value types", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		none := maybe.Empty[User]()
+		err := errors.New("user not found")
+		result := none.FailIfEmpty(err)
+
+		failure, ok := result.(maybe.Failure[User])
+		if !ok {
+			t.Fatal("FailIfEmpty should convert None to Failure")
+		}
+		if failure.GetError() != err {
+			t.Errorf("expected error %v, got %v", err, failure.GetError())
+		}
+	})
+
+	t.Run("can be used in validation chains", func(t *testing.T) {
+		result := maybe.Empty[int]().
+			FailIfEmpty(errors.New("value is empty")).
+			Map(func(x int) any { return x * 2 })
+
+		failure, ok := result.(maybe.Failure[any])
+		if !ok {
+			t.Fatal("chain should return Failure when None is converted to Failure")
+		}
+		if failure.GetError().Error() != "value is empty" {
+			t.Errorf("expected 'value is empty', got %s", failure.GetError().Error())
+		}
+	})
+
+	t.Run("propagates error through chain", func(t *testing.T) {
+		originalErr := errors.New("empty value")
+		result := maybe.Empty[int]().
+			FailIfEmpty(originalErr).
+			Filter(func(x int) bool { return x > 0 }).
+			Map(func(x int) any { return x * 2 })
+
+		failure, ok := result.(maybe.Failure[any])
+		if !ok {
+			t.Fatal("error should propagate through chain")
+		}
+		if failure.GetError() != originalErr {
+			t.Errorf("expected original error, got %v", failure.GetError())
+		}
+	})
+
+	t.Run("useful for required value validation", func(t *testing.T) {
+		// Simulating optional value that becomes required
+		optionalValue := maybe.Empty[string]()
+		result := optionalValue.FailIfEmpty(errors.New("name is required"))
+
+		failure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("FailIfEmpty should convert None to Failure for required fields")
+		}
+		if failure.GetError().Error() != "name is required" {
+			t.Errorf("expected 'name is required', got %s", failure.GetError().Error())
+		}
+	})
+
+	t.Run("works with nil error", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		result := none.FailIfEmpty(nil)
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should convert None to Failure even with nil error")
+		}
+		if failure.GetError() != nil {
+			t.Errorf("expected nil error, got %v", failure.GetError())
+		}
+	})
+
+	t.Run("can be chained with MatchThen", func(t *testing.T) {
+		err := errors.New("empty")
+		var capturedErr error
+
+		result := maybe.Empty[int]().
+			FailIfEmpty(err).
+			MatchThen(
+				func(x int) {},
+				func() {},
+				func(e error) { capturedErr = e },
+			)
+
+		if capturedErr != err {
+			t.Errorf("expected captured error %v, got %v", err, capturedErr)
+		}
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("result should be Failure")
+		}
+		if failure.GetError() != err {
+			t.Errorf("expected error %v, got %v", err, failure.GetError())
+		}
+	})
+}

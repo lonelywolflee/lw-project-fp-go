@@ -841,3 +841,159 @@ func TestFailure_MatchThen(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_FailIfEmpty(t *testing.T) {
+	t.Run("returns original Failure unchanged", func(t *testing.T) {
+		originalErr := errors.New("original error")
+		failure := maybe.Fail[int](originalErr)
+		newErr := errors.New("new error")
+		result := failure.FailIfEmpty(newErr)
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Failure when already failed")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, resultFailure.GetError())
+		}
+	})
+
+	t.Run("ignores new error and preserves original", func(t *testing.T) {
+		originalErr := errors.New("database error")
+		failure := maybe.Fail[string](originalErr)
+		newErr := errors.New("this should be ignored")
+		result := failure.FailIfEmpty(newErr)
+
+		resultFailure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Failure")
+		}
+		if resultFailure.GetError().Error() != "database error" {
+			t.Errorf("expected 'database error', got %s", resultFailure.GetError().Error())
+		}
+		if resultFailure.GetError() == newErr {
+			t.Error("FailIfEmpty should not replace original error with new error")
+		}
+	})
+
+	t.Run("works with different value types", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		originalErr := errors.New("user not found")
+		failure := maybe.Fail[User](originalErr)
+		newErr := errors.New("should be ignored")
+		result := failure.FailIfEmpty(newErr)
+
+		resultFailure, ok := result.(maybe.Failure[User])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Failure")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, resultFailure.GetError())
+		}
+	})
+
+	t.Run("preserves error through chain", func(t *testing.T) {
+		originalErr := errors.New("validation failed")
+		result := maybe.Fail[int](originalErr).
+			FailIfEmpty(errors.New("error 1")).
+			FailIfEmpty(errors.New("error 2")).
+			Map(func(x int) any { return x * 2 })
+
+		resultFailure, ok := result.(maybe.Failure[any])
+		if !ok {
+			t.Fatal("chain should preserve Failure")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected original error, got %v", resultFailure.GetError())
+		}
+	})
+
+	t.Run("useful in railway-oriented programming", func(t *testing.T) {
+		originalErr := errors.New("step 1 failed")
+		result := maybe.Fail[int](originalErr).
+			FailIfEmpty(errors.New("step 2 check")).
+			Filter(func(x int) bool { return x > 0 }).
+			FailIfEmpty(errors.New("step 3 check")).
+			Map(func(x int) any { return x * 2 })
+
+		resultFailure, ok := result.(maybe.Failure[any])
+		if !ok {
+			t.Fatal("railway pattern should preserve first failure")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected first error, got %v", resultFailure.GetError())
+		}
+	})
+
+	t.Run("works with nil new error", func(t *testing.T) {
+		originalErr := errors.New("original")
+		failure := maybe.Fail[int](originalErr)
+		result := failure.FailIfEmpty(nil)
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Failure")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected original error, got %v", resultFailure.GetError())
+		}
+	})
+
+	t.Run("multiple FailIfEmpty calls preserve first error", func(t *testing.T) {
+		originalErr := errors.New("first error")
+		result := maybe.Fail[int](originalErr).
+			FailIfEmpty(errors.New("second error")).
+			FailIfEmpty(errors.New("third error")).
+			FailIfEmpty(errors.New("fourth error"))
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("multiple FailIfEmpty calls should return Failure")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected first error, got %v", resultFailure.GetError())
+		}
+	})
+
+	t.Run("Get() returns original error", func(t *testing.T) {
+		originalErr := errors.New("get test error")
+		result := maybe.Fail[int](originalErr).
+			FailIfEmpty(errors.New("should be ignored"))
+
+		value, err := result.Get()
+		if err != originalErr {
+			t.Errorf("Get() should return original error, got %v", err)
+		}
+		if value != 0 {
+			t.Errorf("Get() should return zero value, got %d", value)
+		}
+	})
+
+	t.Run("can be chained with MatchThen", func(t *testing.T) {
+		originalErr := errors.New("original")
+		var capturedErr error
+
+		result := maybe.Fail[int](originalErr).
+			FailIfEmpty(errors.New("new")).
+			MatchThen(
+				func(x int) {},
+				func() {},
+				func(e error) { capturedErr = e },
+			)
+
+		if capturedErr != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, capturedErr)
+		}
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("result should be Failure")
+		}
+		if resultFailure.GetError() != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, resultFailure.GetError())
+		}
+	})
+}

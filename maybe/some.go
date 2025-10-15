@@ -114,6 +114,17 @@ func (s Some[T]) OrElseDefault(v T) T {
 	return s.GetValue()
 }
 
+// FailIfEmpty returns the original Some unchanged since it contains a value.
+// The provided error is ignored because Some is not empty.
+//
+// Example:
+//
+//	some := Just(5)
+//	result := some.FailIfEmpty(errors.New("empty")) // returns Just(5), error ignored
+func (s Some[T]) FailIfEmpty(err error) Maybe[T] {
+	return s
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.
@@ -122,8 +133,8 @@ func (s Some[T]) OrElseDefault(v T) T {
 // Example:
 //
 //	some := Just(5)
-//	result := some.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints 5
-//	result := Empty[int]().MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "none"
+//	result := some.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) })                            // prints 5
+//	result := Empty[int]().MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) })                    // prints "none"
 //	result := Fail[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
 	return Do(func() Maybe[T] {

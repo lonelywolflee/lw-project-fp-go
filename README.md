@@ -236,6 +236,47 @@ config := fetchConfig().
     OrElseDefault(DefaultConfig)
 ```
 
+### Converting Empty to Failure with FailIfEmpty
+
+```go
+// FailIfEmpty converts None to Failure, useful for validation pipelines
+// Some: returns unchanged (value is present)
+result := maybe.Just(42).FailIfEmpty(errors.New("empty"))
+// Returns: Just(42) - error ignored
+
+// None: converts to Failure (empty becomes error)
+result := maybe.Empty[int]().FailIfEmpty(errors.New("value required"))
+// Returns: Fail[int]("value required")
+
+// Failure: returns unchanged (preserves original error)
+result := maybe.Fail[int](errors.New("original")).
+    FailIfEmpty(errors.New("new"))
+// Returns: Fail[int]("original") - new error ignored
+
+// Practical example: required field validation
+func validateUser(name string, age int) maybe.Maybe[User] {
+    return findUser(name).  // returns Maybe[User]
+        FailIfEmpty(errors.New("user not found")).
+        Filter(func(u User) bool { return u.Age == age }).
+        FailIfEmpty(errors.New("age mismatch"))
+}
+
+// Practical example: database query with required result
+func getUserByID(id int) (User, error) {
+    return queryUser(id).  // returns Maybe[User]
+        FailIfEmpty(errors.New("user not found")).
+        Get()  // converts to (User, error)
+}
+
+// Railway-oriented programming with FailIfEmpty
+result := fetchConfig().
+    FailIfEmpty(errors.New("config not found")).
+    Filter(func(c Config) bool { return c.IsValid() }).
+    FailIfEmpty(errors.New("config invalid")).
+    Map(func(c Config) any { return c.Apply() })
+// First error in chain is propagated
+```
+
 ### Pattern Matching with MatchThen
 
 ```go
@@ -291,6 +332,7 @@ type Maybe[T any] interface {
     Get() (T, error)
     OrElseGet(fn func() T) T
     OrElseDefault(v T) T
+    FailIfEmpty(err error) Maybe[T]
     MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 }
 ```
@@ -307,6 +349,7 @@ func (s Some[T]) Then(fn func(T)) Maybe[T]
 func (s Some[T]) Get() (T, error)
 func (s Some[T]) OrElseGet(fn func() T) T
 func (s Some[T]) OrElseDefault(v T) T
+func (s Some[T]) FailIfEmpty(err error) Maybe[T]
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
@@ -321,6 +364,7 @@ func (n None[T]) Then(fn func(T)) Maybe[T]
 func (n None[T]) Get() (T, error)
 func (n None[T]) OrElseGet(fn func() T) T
 func (n None[T]) OrElseDefault(v T) T
+func (n None[T]) FailIfEmpty(err error) Maybe[T]
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
@@ -336,6 +380,7 @@ func (f Failure[T]) Then(fn func(T)) Maybe[T]
 func (f Failure[T]) Get() (T, error)
 func (f Failure[T]) OrElseGet(fn func() T) T
 func (f Failure[T]) OrElseDefault(v T) T
+func (f Failure[T]) FailIfEmpty(err error) Maybe[T]
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 

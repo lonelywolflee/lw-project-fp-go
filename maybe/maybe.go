@@ -44,7 +44,7 @@ type Maybe[T any] interface {
 	//
 	// Example:
 	//
-	//	result := Just(10).Then(func(x int) { fmt.Println(x) }) // prints 10, returns Just(10)
+	//	result := Just(10).Then(func(x int) { fmt.Println(x) })     // prints 10, returns Just(10)
 	//	result := Empty[int]().Then(func(x int) { fmt.Println(x) }) // Empty[int](), nothing printed
 	Then(fn func(T)) Maybe[T]
 
@@ -56,8 +56,8 @@ type Maybe[T any] interface {
 	//
 	// Example:
 	//
-	//	value, err := Just(42).Get()     // value = 42, err = nil
-	//	value, err := Empty[int]().Get() // value = 0, err = nil
+	//	value, err := Just(42).Get()           // value = 42, err = nil
+	//	value, err := Empty[int]().Get()       // value = 0, err = nil
 	//	value, err := Fail[int](someErr).Get() // value = 0, err = someErr
 	Get() (T, error)
 
@@ -78,10 +78,23 @@ type Maybe[T any] interface {
 	//
 	// Example:
 	//
-	//	value := Just(42).OrElseDefault(0)  // returns 42
-	//	value := Empty[int]().OrElseDefault(0)  // returns 0
+	//	value := Just(42).OrElseDefault(0)        // returns 42
+	//	value := Empty[int]().OrElseDefault(0)    // returns 0
 	//	value := Fail[int](err).OrElseDefault(0)  // returns 0
 	OrElseDefault(v T) T
+
+	// FailIfEmpty converts None to Failure with the provided error.
+	// For Some: returns the original Some unchanged (value is present)
+	// For None: returns Failure with the provided error (empty state becomes failure)
+	// For Failure: returns the original Failure unchanged (already failed)
+	// This is useful for converting "empty" states into explicit errors.
+	//
+	// Example:
+	//
+	//	result := Just(42).FailIfEmpty(errors.New("empty"))     // returns Just(42)
+	//	result := Empty[int]().FailIfEmpty(errors.New("empty")) // returns Fail[int]("empty")
+	//	result := Fail[int](err1).FailIfEmpty(err2)             // returns Fail[int](err1)
+	FailIfEmpty(err error) Maybe[T]
 
 	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
 	// This provides a type-safe way to handle all three Maybe states (Some, None, Failure) with custom behavior.

@@ -821,3 +821,148 @@ func TestSome_MatchThen(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_FailIfEmpty(t *testing.T) {
+	t.Run("returns original Some when value present", func(t *testing.T) {
+		some := maybe.Just(42)
+		err := errors.New("should be ignored")
+		result := some.FailIfEmpty(err)
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Some when value is present")
+		}
+		if resultSome.GetValue() != 42 {
+			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("ignores provided error when value present", func(t *testing.T) {
+		some := maybe.Just("hello")
+		err := errors.New("this error should be ignored")
+		result := some.FailIfEmpty(err)
+
+		resultSome, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Some when value is present")
+		}
+		if resultSome.GetValue() != "hello" {
+			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		}
+
+		// Verify no error is present
+		value, getErr := result.Get()
+		if getErr != nil {
+			t.Errorf("Some should not have error, got %v", getErr)
+		}
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
+		}
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		some := maybe.Just(0)
+		err := errors.New("zero is a valid value")
+		result := some.FailIfEmpty(err)
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Some for zero value")
+		}
+		if resultSome.GetValue() != 0 {
+			t.Errorf("expected 0, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("works with complex types", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		user := User{Name: "Alice", Age: 30}
+		some := maybe.Just(user)
+		err := errors.New("should be ignored")
+		result := some.FailIfEmpty(err)
+
+		resultSome, ok := result.(maybe.Some[User])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Some when value is present")
+		}
+		resultUser := resultSome.GetValue()
+		if resultUser.Name != "Alice" || resultUser.Age != 30 {
+			t.Errorf("expected User{Alice, 30}, got %+v", resultUser)
+		}
+	})
+
+	t.Run("works with pointers", func(t *testing.T) {
+		num := 42
+		some := maybe.Just(&num)
+		err := errors.New("should be ignored")
+		result := some.FailIfEmpty(err)
+
+		resultSome, ok := result.(maybe.Some[*int])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Some when value is present")
+		}
+		resultPtr := resultSome.GetValue()
+		if resultPtr == nil || *resultPtr != 42 {
+			t.Errorf("expected pointer to 42, got %v", resultPtr)
+		}
+	})
+
+	t.Run("can be chained with Map", func(t *testing.T) {
+		result := maybe.Just(10).
+			FailIfEmpty(errors.New("should be ignored")).
+			Map(func(x int) any { return x * 2 })
+
+		resultSome, ok := result.(maybe.Some[any])
+		if !ok {
+			t.Fatal("chained FailIfEmpty and Map should return Some")
+		}
+		if resultSome.GetValue() != 20 {
+			t.Errorf("expected 20, got %v", resultSome.GetValue())
+		}
+	})
+
+	t.Run("can be chained with Filter", func(t *testing.T) {
+		result := maybe.Just(10).
+			FailIfEmpty(errors.New("should be ignored")).
+			Filter(func(x int) bool { return x > 5 })
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("chained FailIfEmpty and Filter should return Some")
+		}
+		if resultSome.GetValue() != 10 {
+			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("preserves value through multiple FailIfEmpty calls", func(t *testing.T) {
+		result := maybe.Just(5).
+			FailIfEmpty(errors.New("error 1")).
+			FailIfEmpty(errors.New("error 2")).
+			FailIfEmpty(errors.New("error 3"))
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("multiple FailIfEmpty calls should return Some")
+		}
+		if resultSome.GetValue() != 5 {
+			t.Errorf("expected 5, got %d", resultSome.GetValue())
+		}
+	})
+
+	t.Run("works with nil error", func(t *testing.T) {
+		some := maybe.Just(42)
+		result := some.FailIfEmpty(nil)
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("FailIfEmpty should return Some even with nil error")
+		}
+		if resultSome.GetValue() != 42 {
+			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		}
+	})
+}
