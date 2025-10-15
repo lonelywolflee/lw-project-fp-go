@@ -208,17 +208,28 @@ func findUser(id int) (User, error) {
 ### Extracting Values with Defaults
 
 ```go
-// OrElseGet provides a computed default value
-value := maybe.Just(42).OrElseGet(func() int { return 0 })
-// Returns: 42 (the actual value)
+// OrElseGet provides a computed default value with error awareness
+// Function receives: nil for None, actual error for Failure
+value := maybe.Just(42).OrElseGet(func(err error) int { return 0 })
+// Returns: 42 (the actual value, function not called)
 
-value := maybe.Empty[int]().OrElseGet(func() int { return 0 })
-// Returns: 0 (computed default)
+value := maybe.Empty[int]().OrElseGet(func(err error) int { return 0 })
+// Returns: 0 (err is nil for None)
 
-value := maybe.Fail[int](err).OrElseGet(func() int {
+value := maybe.Fail[int](err).OrElseGet(func(e error) int {
+    log.Printf("Error occurred: %v", e)
     return computeDefault()
 })
-// Returns: result of computeDefault()
+// Returns: result of computeDefault() (logs the error)
+
+// Practical example: error-aware default computation
+result := validateInput(data).OrElseGet(func(err error) int {
+    if err != nil {
+        log.Printf("Validation failed: %v", err)
+        return -1 // Error indicator
+    }
+    return 0 // Empty indicator
+})
 
 // OrElseDefault provides a constant default value
 value := maybe.Just(42).OrElseDefault(0)
@@ -330,7 +341,7 @@ type Maybe[T any] interface {
     Filter(fn func(T) bool) Maybe[T]
     Then(fn func(T)) Maybe[T]
     Get() (T, error)
-    OrElseGet(fn func() T) T
+    OrElseGet(fn func(error) T) T
     OrElseDefault(v T) T
     FailIfEmpty(err error) Maybe[T]
     MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -347,7 +358,7 @@ func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
 func (s Some[T]) Then(fn func(T)) Maybe[T]
 func (s Some[T]) Get() (T, error)
-func (s Some[T]) OrElseGet(fn func() T) T
+func (s Some[T]) OrElseGet(fn func(error) T) T
 func (s Some[T]) OrElseDefault(v T) T
 func (s Some[T]) FailIfEmpty(err error) Maybe[T]
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -362,7 +373,7 @@ func (n None[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (n None[T]) Filter(fn func(T) bool) Maybe[T]
 func (n None[T]) Then(fn func(T)) Maybe[T]
 func (n None[T]) Get() (T, error)
-func (n None[T]) OrElseGet(fn func() T) T
+func (n None[T]) OrElseGet(fn func(error) T) T
 func (n None[T]) OrElseDefault(v T) T
 func (n None[T]) FailIfEmpty(err error) Maybe[T]
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -378,7 +389,7 @@ func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
 func (f Failure[T]) Then(fn func(T)) Maybe[T]
 func (f Failure[T]) Get() (T, error)
-func (f Failure[T]) OrElseGet(fn func() T) T
+func (f Failure[T]) OrElseGet(fn func(error) T) T
 func (f Failure[T]) OrElseDefault(v T) T
 func (f Failure[T]) FailIfEmpty(err error) Maybe[T]
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]

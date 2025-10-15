@@ -66,13 +66,14 @@ func (n None[T]) Get() (T, error) {
 
 // OrElseGet calls the provided function and returns its result.
 // Since None has no value, this method always executes the function to get a default value.
+// The function receives nil as the error parameter, indicating "no error, just empty".
 //
 // Example:
 //
 //	none := Empty[int]()
-//	result := none.OrElseGet(func() int { return 10 }) // returns 10
-func (n None[T]) OrElseGet(fn func() T) T {
-	return fn()
+//	result := none.OrElseGet(func(err error) int { return 10 }) // returns 10, err is nil
+func (n None[T]) OrElseGet(fn func(error) T) T {
+	return fn(nil)
 }
 
 // OrElseDefault returns the provided default value.

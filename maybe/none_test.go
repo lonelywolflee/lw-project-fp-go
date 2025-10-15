@@ -307,13 +307,18 @@ func TestNone_OrElseGet(t *testing.T) {
 	t.Run("calls function and returns result", func(t *testing.T) {
 		none := maybe.Empty[int]()
 		called := false
-		result := none.OrElseGet(func() int {
+		var receivedErr error
+		result := none.OrElseGet(func(err error) int {
 			called = true
+			receivedErr = err
 			return 42
 		})
 
 		if !called {
 			t.Error("OrElseGet should call the function when None has no value")
+		}
+		if receivedErr != nil {
+			t.Errorf("None should pass nil error, got %v", receivedErr)
 		}
 		if result != 42 {
 			t.Errorf("expected 42, got %d", result)
@@ -322,7 +327,7 @@ func TestNone_OrElseGet(t *testing.T) {
 
 	t.Run("returns string from function", func(t *testing.T) {
 		none := maybe.Empty[string]()
-		result := none.OrElseGet(func() string { return "default" })
+		result := none.OrElseGet(func(err error) string { return "default" })
 
 		if result != "default" {
 			t.Errorf("expected 'default', got %s", result)
@@ -333,11 +338,11 @@ func TestNone_OrElseGet(t *testing.T) {
 		none := maybe.Empty[int]()
 		callCount := 0
 
-		result1 := none.OrElseGet(func() int {
+		result1 := none.OrElseGet(func(err error) int {
 			callCount++
 			return callCount
 		})
-		result2 := none.OrElseGet(func() int {
+		result2 := none.OrElseGet(func(err error) int {
 			callCount++
 			return callCount
 		})
@@ -355,7 +360,7 @@ func TestNone_OrElseGet(t *testing.T) {
 
 	t.Run("works with different types", func(t *testing.T) {
 		none := maybe.Empty[[]int]()
-		result := none.OrElseGet(func() []int { return []int{1, 2, 3} })
+		result := none.OrElseGet(func(err error) []int { return []int{1, 2, 3} })
 
 		if len(result) != 3 {
 			t.Errorf("expected slice length 3, got %d", len(result))
@@ -367,7 +372,7 @@ func TestNone_OrElseGet(t *testing.T) {
 
 	t.Run("can return zero values", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		result := none.OrElseGet(func() int { return 0 })
+		result := none.OrElseGet(func(err error) int { return 0 })
 
 		if result != 0 {
 			t.Errorf("expected 0, got %d", result)
@@ -376,7 +381,7 @@ func TestNone_OrElseGet(t *testing.T) {
 
 	t.Run("function can compute complex values", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		result := none.OrElseGet(func() int {
+		result := none.OrElseGet(func(err error) int {
 			sum := 0
 			for i := 1; i <= 10; i++ {
 				sum += i
@@ -386,6 +391,22 @@ func TestNone_OrElseGet(t *testing.T) {
 
 		if result != 55 {
 			t.Errorf("expected 55 (sum of 1-10), got %d", result)
+		}
+	})
+
+	t.Run("receives nil error parameter", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		var capturedErr error
+		result := none.OrElseGet(func(err error) int {
+			capturedErr = err
+			return 100
+		})
+
+		if capturedErr != nil {
+			t.Errorf("expected nil error for None, got %v", capturedErr)
+		}
+		if result != 100 {
+			t.Errorf("expected 100, got %d", result)
 		}
 	})
 }

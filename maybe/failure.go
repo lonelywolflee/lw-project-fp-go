@@ -84,13 +84,17 @@ func (f Failure[T]) Get() (T, error) {
 
 // OrElseGet calls the provided function and returns its result.
 // Since Failure represents an error state with no valid value, this method always executes the function to get a default value.
+// The function receives the actual error, allowing error-aware default value computation.
 //
 // Example:
 //
 //	failure := Fail[int](errors.New("failed"))
-//	result := failure.OrElseGet(func() int { return 10 }) // returns 10
-func (f Failure[T]) OrElseGet(fn func() T) T {
-	return fn()
+//	result := failure.OrElseGet(func(err error) int {
+//	    log.Printf("Error occurred: %v", err)
+//	    return 10
+//	}) // returns 10, logs the error
+func (f Failure[T]) OrElseGet(fn func(error) T) T {
+	return fn(f.e)
 }
 
 // OrElseDefault returns the provided default value.

@@ -94,12 +94,14 @@ func (s Some[T]) Get() (T, error) {
 
 // OrElseGet returns the value inside Some.
 // Since Some contains a value, the provided function is never called.
+// The function parameter receives an error (nil for None, actual error for Failure),
+// but for Some this function is not executed.
 //
 // Example:
 //
 //	some := Just(5)
-//	result := some.OrElseGet(func() int { return 10 }) // returns 5 (not 10)
-func (s Some[T]) OrElseGet(fn func() T) T {
+//	result := some.OrElseGet(func(err error) int { return 10 }) // returns 5 (function not called)
+func (s Some[T]) OrElseGet(fn func(error) T) T {
 	return s.GetValue()
 }
 

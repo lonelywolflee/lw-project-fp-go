@@ -485,13 +485,18 @@ func TestFailure_OrElseGet(t *testing.T) {
 		err := errors.New("test error")
 		failure := maybe.Fail[int](err)
 		called := false
-		result := failure.OrElseGet(func() int {
+		var receivedErr error
+		result := failure.OrElseGet(func(e error) int {
 			called = true
+			receivedErr = e
 			return 42
 		})
 
 		if !called {
 			t.Error("OrElseGet should call the function when Failure has no value")
+		}
+		if receivedErr != err {
+			t.Errorf("expected error %v, got %v", err, receivedErr)
 		}
 		if result != 42 {
 			t.Errorf("expected 42, got %d", result)
@@ -501,7 +506,7 @@ func TestFailure_OrElseGet(t *testing.T) {
 	t.Run("returns string from function", func(t *testing.T) {
 		err := errors.New("test error")
 		failure := maybe.Fail[string](err)
-		result := failure.OrElseGet(func() string { return "default" })
+		result := failure.OrElseGet(func(e error) string { return "default" })
 
 		if result != "default" {
 			t.Errorf("expected 'default', got %s", result)
@@ -513,11 +518,11 @@ func TestFailure_OrElseGet(t *testing.T) {
 		failure := maybe.Fail[int](err)
 		callCount := 0
 
-		result1 := failure.OrElseGet(func() int {
+		result1 := failure.OrElseGet(func(e error) int {
 			callCount++
 			return callCount
 		})
-		result2 := failure.OrElseGet(func() int {
+		result2 := failure.OrElseGet(func(e error) int {
 			callCount++
 			return callCount
 		})
@@ -536,7 +541,7 @@ func TestFailure_OrElseGet(t *testing.T) {
 	t.Run("works with different types", func(t *testing.T) {
 		err := errors.New("test error")
 		failure := maybe.Fail[[]int](err)
-		result := failure.OrElseGet(func() []int { return []int{1, 2, 3} })
+		result := failure.OrElseGet(func(e error) []int { return []int{1, 2, 3} })
 
 		if len(result) != 3 {
 			t.Errorf("expected slice length 3, got %d", len(result))
@@ -549,7 +554,7 @@ func TestFailure_OrElseGet(t *testing.T) {
 	t.Run("can return zero values", func(t *testing.T) {
 		err := errors.New("test error")
 		failure := maybe.Fail[int](err)
-		result := failure.OrElseGet(func() int { return 0 })
+		result := failure.OrElseGet(func(e error) int { return 0 })
 
 		if result != 0 {
 			t.Errorf("expected 0, got %d", result)
@@ -559,7 +564,7 @@ func TestFailure_OrElseGet(t *testing.T) {
 	t.Run("function can compute complex values", func(t *testing.T) {
 		err := errors.New("test error")
 		failure := maybe.Fail[int](err)
-		result := failure.OrElseGet(func() int {
+		result := failure.OrElseGet(func(e error) int {
 			sum := 0
 			for i := 1; i <= 10; i++ {
 				sum += i
@@ -579,14 +584,47 @@ func TestFailure_OrElseGet(t *testing.T) {
 		failure1 := maybe.Fail[int](err1)
 		failure2 := maybe.Fail[int](err2)
 
-		result1 := failure1.OrElseGet(func() int { return 10 })
-		result2 := failure2.OrElseGet(func() int { return 20 })
+		result1 := failure1.OrElseGet(func(e error) int { return 10 })
+		result2 := failure2.OrElseGet(func(e error) int { return 20 })
 
 		if result1 != 10 {
 			t.Errorf("expected 10, got %d", result1)
 		}
 		if result2 != 20 {
 			t.Errorf("expected 20, got %d", result2)
+		}
+	})
+
+	t.Run("function receives actual error", func(t *testing.T) {
+		originalErr := errors.New("database connection failed")
+		failure := maybe.Fail[int](originalErr)
+		var capturedErr error
+		result := failure.OrElseGet(func(err error) int {
+			capturedErr = err
+			return 100
+		})
+
+		if capturedErr != originalErr {
+			t.Errorf("expected error %v, got %v", originalErr, capturedErr)
+		}
+		if result != 100 {
+			t.Errorf("expected 100, got %d", result)
+		}
+	})
+
+	t.Run("can use error in computation", func(t *testing.T) {
+		err := errors.New("value must be positive")
+		failure := maybe.Fail[int](err)
+		result := failure.OrElseGet(func(e error) int {
+			// Use error information to determine default
+			if e.Error() == "value must be positive" {
+				return 1 // Return positive default
+			}
+			return 0
+		})
+
+		if result != 1 {
+			t.Errorf("expected 1, got %d", result)
 		}
 	})
 }

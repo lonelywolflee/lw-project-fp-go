@@ -525,7 +525,7 @@ func TestSome_OrElseGet(t *testing.T) {
 	t.Run("returns the value and does not call function", func(t *testing.T) {
 		some := maybe.Just(42)
 		called := false
-		result := some.OrElseGet(func() int {
+		result := some.OrElseGet(func(err error) int {
 			called = true
 			return 0
 		})
@@ -540,7 +540,7 @@ func TestSome_OrElseGet(t *testing.T) {
 
 	t.Run("returns string value without calling function", func(t *testing.T) {
 		some := maybe.Just("hello")
-		result := some.OrElseGet(func() string { return "default" })
+		result := some.OrElseGet(func(err error) string { return "default" })
 
 		if result != "hello" {
 			t.Errorf("expected 'hello', got %s", result)
@@ -549,7 +549,7 @@ func TestSome_OrElseGet(t *testing.T) {
 
 	t.Run("function can panic but never called", func(t *testing.T) {
 		some := maybe.Just(10)
-		result := some.OrElseGet(func() int {
+		result := some.OrElseGet(func(err error) int {
 			panic("this should never be called")
 		})
 
@@ -560,7 +560,7 @@ func TestSome_OrElseGet(t *testing.T) {
 
 	t.Run("works with different types", func(t *testing.T) {
 		some := maybe.Just([]int{1, 2, 3})
-		result := some.OrElseGet(func() []int { return []int{} })
+		result := some.OrElseGet(func(err error) []int { return []int{} })
 
 		if len(result) != 3 {
 			t.Errorf("expected slice length 3, got %d", len(result))
@@ -572,7 +572,7 @@ func TestSome_OrElseGet(t *testing.T) {
 
 	t.Run("works with zero values", func(t *testing.T) {
 		some := maybe.Just(0)
-		result := some.OrElseGet(func() int { return 42 })
+		result := some.OrElseGet(func(err error) int { return 42 })
 
 		if result != 0 {
 			t.Errorf("expected 0 (the actual value), got %d", result)

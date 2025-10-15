@@ -63,14 +63,18 @@ type Maybe[T any] interface {
 
 	// OrElseGet returns the value inside Maybe if it exists (Some case),
 	// otherwise calls the provided function and returns its result (None or Failure case).
-	// This is useful for providing a computed default value when Maybe is empty or failed.
+	// The function receives an error parameter: nil for None, actual error for Failure.
+	// This allows error-aware default value computation.
 	//
 	// Example:
 	//
-	//	value := Just(42).OrElseGet(func() int { return 0 })  // returns 42
-	//	value := Empty[int]().OrElseGet(func() int { return 0 })  // returns 0
-	//	value := Fail[int](err).OrElseGet(func() int { return 0 })  // returns 0
-	OrElseGet(fn func() T) T
+	//	value := Just(42).OrElseGet(func(err error) int { return 0 })              // returns 42
+	//	value := Empty[int]().OrElseGet(func(err error) int { return 0 })          // returns 0, err is nil
+	//	value := Fail[int](err).OrElseGet(func(e error) int {
+	//	    log.Printf("Error: %v", e)
+	//	    return 0
+	//	})  // returns 0, logs error
+	OrElseGet(fn func(error) T) T
 
 	// OrElseDefault returns the value inside Maybe if it exists (Some case),
 	// otherwise returns the provided default value (None or Failure case).
