@@ -218,33 +218,31 @@ type User struct {
 }
 
 func validateUser(name, email string, age int) maybe.Maybe[User] {
-    return maybe.Just(name).
-        // Validate name is not empty
+    // Validate name using method chaining
+    validatedName := maybe.Just(name).
         Filter(func(n string) bool { return len(strings.TrimSpace(n)) > 0 }).
         FailIfEmpty(func() error { return errors.New("name is required") }).
-
-        // Validate name length
         Filter(func(n string) bool { return len(n) < 100 }).
-        FailIfEmpty(func() error { return errors.New("name too long") }).
+        FailIfEmpty(func() error { return errors.New("name too long") })
 
-        // Transform to User struct using FlatMap
-        FlatMap(func(n string) maybe.Maybe[User] {
-            // Validate email
-            if !strings.Contains(email, "@") {
-                return maybe.Fail[User](errors.New("invalid email"))
-            }
+    // Transform to User struct using helper FlatMap (type conversion: string → User)
+    return maybe.FlatMap(validatedName, func(n string) maybe.Maybe[User] {
+        // Validate email
+        if !strings.Contains(email, "@") {
+            return maybe.Fail[User](errors.New("invalid email"))
+        }
 
-            // Validate age
-            if age < 0 || age > 150 {
-                return maybe.Fail[User](errors.New("invalid age"))
-            }
+        // Validate age
+        if age < 0 || age > 150 {
+            return maybe.Fail[User](errors.New("invalid age"))
+        }
 
-            return maybe.Just(User{
-                Name:  n,
-                Email: email,
-                Age:   age,
-            })
+        return maybe.Just(User{
+            Name:  n,
+            Email: email,
+            Age:   age,
         })
+    })
 }
 
 func main() {
@@ -282,8 +280,8 @@ import (
 )
 
 func parseAndValidate(input string) maybe.Maybe[string] {
-    // Parse string to int, then validate, then format
-    return maybe.FlatMap(
+    // Parse string to int using helper FlatMap (type conversion: string → int)
+    parsedInt := maybe.FlatMap(
         maybe.Just(input),
         func(s string) maybe.Maybe[int] {
             val, err := strconv.Atoi(s)
@@ -292,12 +290,17 @@ func parseAndValidate(input string) maybe.Maybe[string] {
             }
             return maybe.Just(val)
         },
-    ).
+    )
+
+    // Validate using method chaining (same type: int → int)
+    validatedInt := parsedInt.
         Filter(func(x int) bool { return x > 0 }).
-        FailIfEmpty(func() error { return fmt.Errorf("value must be positive") }).
-        FlatMap(func(x int) maybe.Maybe[string] {
-            return maybe.Just(fmt.Sprintf("Valid: %d", x))
-        })
+        FailIfEmpty(func() error { return fmt.Errorf("value must be positive") })
+
+    // Format to string using helper Map (type conversion: int → string)
+    return maybe.Map(validatedInt, func(x int) string {
+        return fmt.Sprintf("Valid: %d", x)
+    })
 }
 
 func main() {
@@ -327,6 +330,7 @@ package main
 import (
     "fmt"
     "log"
+    "strings"
     "github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
