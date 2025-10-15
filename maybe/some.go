@@ -105,13 +105,13 @@ func (s Some[T]) OrElseDefault(v T) T {
 }
 
 // FailIfEmpty returns the original Some unchanged since it contains a value.
-// The provided error is ignored because Some is not empty.
+// The provided function is not called because Some is not empty.
 //
 // Example:
 //
 //	some := Just(5)
-//	result := some.FailIfEmpty(errors.New("empty")) // returns Just(5), error ignored
-func (s Some[T]) FailIfEmpty(err error) Maybe[T] {
+//	result := some.FailIfEmpty(func() error { return errors.New("empty") }) // returns Just(5), function not called
+func (s Some[T]) FailIfEmpty(fn func() error) Maybe[T] {
 	return s
 }
 

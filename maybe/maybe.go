@@ -87,18 +87,18 @@ type Maybe[T any] interface {
 	//	value := Fail[int](err).OrElseDefault(0)  // returns 0
 	OrElseDefault(v T) T
 
-	// FailIfEmpty converts None to Failure with the provided error.
-	// For Some: returns the original Some unchanged (value is present)
-	// For None: returns Failure with the provided error (empty state becomes failure)
-	// For Failure: returns the original Failure unchanged (already failed)
-	// This is useful for converting "empty" states into explicit errors.
+	// FailIfEmpty converts None to Failure with an error from the provided function.
+	// For Some: returns the original Some unchanged (value is present, function not called)
+	// For None: calls the function to get an error and returns Failure (empty state becomes failure)
+	// For Failure: returns the original Failure unchanged (already failed, function not called)
+	// This is useful for converting "empty" states into explicit errors with lazy evaluation.
 	//
 	// Example:
 	//
-	//	result := Just(42).FailIfEmpty(errors.New("empty"))     // returns Just(42)
-	//	result := Empty[int]().FailIfEmpty(errors.New("empty")) // returns Fail[int]("empty")
-	//	result := Fail[int](err1).FailIfEmpty(err2)             // returns Fail[int](err1)
-	FailIfEmpty(err error) Maybe[T]
+	//	result := Just(42).FailIfEmpty(func() error { return errors.New("empty") })     // returns Just(42)
+	//	result := Empty[int]().FailIfEmpty(func() error { return errors.New("empty") }) // returns Fail[int]("empty")
+	//	result := Fail[int](err1).FailIfEmpty(func() error { return err2 })             // returns Fail[int](err1)
+	FailIfEmpty(func() error) Maybe[T]
 
 	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
 	// This provides a type-safe way to handle all three Maybe states (Some, None, Failure) with custom behavior.

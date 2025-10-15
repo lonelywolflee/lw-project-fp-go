@@ -635,7 +635,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 	t.Run("converts None to Failure with provided error", func(t *testing.T) {
 		none := maybe.Empty[int]()
 		err := errors.New("value required")
-		result := none.FailIfEmpty(err)
+		result := none.FailIfEmpty(func() error { return err })
 
 		failure, ok := result.(maybe.Failure[int])
 		if !ok {
@@ -650,7 +650,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 	t.Run("preserves error message", func(t *testing.T) {
 		none := maybe.Empty[string]()
 		err := errors.New("custom error message")
-		result := none.FailIfEmpty(err)
+		result := none.FailIfEmpty(func() error { return err })
 
 		failure, ok := result.(maybe.Failure[string])
 		if !ok {
@@ -665,7 +665,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 	t.Run("works with different error types", func(t *testing.T) {
 		none := maybe.Empty[int]()
 		err := errors.New("not found")
-		result := none.FailIfEmpty(err)
+		result := none.FailIfEmpty(func() error { return err })
 
 		_, ok := result.(maybe.Failure[int])
 		if !ok {
@@ -689,7 +689,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		}
 		none := maybe.Empty[User]()
 		err := errors.New("user not found")
-		result := none.FailIfEmpty(err)
+		result := none.FailIfEmpty(func() error { return err })
 
 		failure, ok := result.(maybe.Failure[User])
 		if !ok {
@@ -703,7 +703,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 
 	t.Run("can be used in validation chains", func(t *testing.T) {
 		result := maybe.Empty[int]().
-			FailIfEmpty(errors.New("value is empty")).
+			FailIfEmpty(func() error { return errors.New("value is empty") }).
 			Map(func(x int) any { return x * 2 })
 
 		failure, ok := result.(maybe.Failure[any])
@@ -719,7 +719,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 	t.Run("propagates error through chain", func(t *testing.T) {
 		originalErr := errors.New("empty value")
 		result := maybe.Empty[int]().
-			FailIfEmpty(originalErr).
+			FailIfEmpty(func() error { return originalErr }).
 			Filter(func(x int) bool { return x > 0 }).
 			Map(func(x int) any { return x * 2 })
 
@@ -736,7 +736,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 	t.Run("useful for required value validation", func(t *testing.T) {
 		// Simulating optional value that becomes required
 		optionalValue := maybe.Empty[string]()
-		result := optionalValue.FailIfEmpty(errors.New("name is required"))
+		result := optionalValue.FailIfEmpty(func() error { return errors.New("name is required") })
 
 		failure, ok := result.(maybe.Failure[string])
 		if !ok {
@@ -750,7 +750,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 
 	t.Run("works with nil error", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		result := none.FailIfEmpty(nil)
+		result := none.FailIfEmpty(func() error { return nil })
 
 		failure, ok := result.(maybe.Failure[int])
 		if !ok {
@@ -767,7 +767,7 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		var capturedErr error
 
 		result := maybe.Empty[int]().
-			FailIfEmpty(err).
+			FailIfEmpty(func() error { return err }).
 			MatchThen(
 				func(x int) {},
 				func() {},

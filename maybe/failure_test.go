@@ -898,7 +898,7 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		originalErr := errors.New("original error")
 		failure := maybe.Fail[int](originalErr)
 		newErr := errors.New("new error")
-		result := failure.FailIfEmpty(newErr)
+		result := failure.FailIfEmpty(func() error { return newErr })
 
 		resultFailure, ok := result.(maybe.Failure[int])
 		if !ok {
@@ -914,7 +914,7 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		originalErr := errors.New("database error")
 		failure := maybe.Fail[string](originalErr)
 		newErr := errors.New("this should be ignored")
-		result := failure.FailIfEmpty(newErr)
+		result := failure.FailIfEmpty(func() error { return newErr })
 
 		resultFailure, ok := result.(maybe.Failure[string])
 		if !ok {
@@ -937,7 +937,7 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		originalErr := errors.New("user not found")
 		failure := maybe.Fail[User](originalErr)
 		newErr := errors.New("should be ignored")
-		result := failure.FailIfEmpty(newErr)
+		result := failure.FailIfEmpty(func() error { return newErr })
 
 		resultFailure, ok := result.(maybe.Failure[User])
 		if !ok {
@@ -952,8 +952,8 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 	t.Run("preserves error through chain", func(t *testing.T) {
 		originalErr := errors.New("validation failed")
 		result := maybe.Fail[int](originalErr).
-			FailIfEmpty(errors.New("error 1")).
-			FailIfEmpty(errors.New("error 2")).
+			FailIfEmpty(func() error { return errors.New("error 1") }).
+			FailIfEmpty(func() error { return errors.New("error 2") }).
 			Map(func(x int) any { return x * 2 })
 
 		resultFailure, ok := result.(maybe.Failure[any])
@@ -969,9 +969,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 	t.Run("useful in railway-oriented programming", func(t *testing.T) {
 		originalErr := errors.New("step 1 failed")
 		result := maybe.Fail[int](originalErr).
-			FailIfEmpty(errors.New("step 2 check")).
+			FailIfEmpty(func() error { return errors.New("step 2 check") }).
 			Filter(func(x int) bool { return x > 0 }).
-			FailIfEmpty(errors.New("step 3 check")).
+			FailIfEmpty(func() error { return errors.New("step 3 check") }).
 			Map(func(x int) any { return x * 2 })
 
 		resultFailure, ok := result.(maybe.Failure[any])
@@ -987,7 +987,7 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 	t.Run("works with nil new error", func(t *testing.T) {
 		originalErr := errors.New("original")
 		failure := maybe.Fail[int](originalErr)
-		result := failure.FailIfEmpty(nil)
+		result := failure.FailIfEmpty(func() error { return nil })
 
 		resultFailure, ok := result.(maybe.Failure[int])
 		if !ok {
@@ -1002,9 +1002,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 	t.Run("multiple FailIfEmpty calls preserve first error", func(t *testing.T) {
 		originalErr := errors.New("first error")
 		result := maybe.Fail[int](originalErr).
-			FailIfEmpty(errors.New("second error")).
-			FailIfEmpty(errors.New("third error")).
-			FailIfEmpty(errors.New("fourth error"))
+			FailIfEmpty(func() error { return errors.New("second error") }).
+			FailIfEmpty(func() error { return errors.New("third error") }).
+			FailIfEmpty(func() error { return errors.New("fourth error") })
 
 		resultFailure, ok := result.(maybe.Failure[int])
 		if !ok {
@@ -1019,7 +1019,7 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 	t.Run("Get() returns original error", func(t *testing.T) {
 		originalErr := errors.New("get test error")
 		result := maybe.Fail[int](originalErr).
-			FailIfEmpty(errors.New("should be ignored"))
+			FailIfEmpty(func() error { return errors.New("should be ignored") })
 
 		value, err := result.Get()
 		if err != originalErr {
@@ -1035,7 +1035,7 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		var capturedErr error
 
 		result := maybe.Fail[int](originalErr).
-			FailIfEmpty(errors.New("new")).
+			FailIfEmpty(func() error { return errors.New("new") }).
 			MatchThen(
 				func(x int) {},
 				func() {},

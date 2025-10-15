@@ -253,39 +253,39 @@ config := fetchConfig().
 
 ```go
 // FailIfEmpty converts None to Failure, useful for validation pipelines
-// Some: returns unchanged (value is present)
-result := maybe.Just(42).FailIfEmpty(errors.New("empty"))
-// Returns: Just(42) - error ignored
+// Some: returns unchanged (value is present, function not called)
+result := maybe.Just(42).FailIfEmpty(func() error { return errors.New("empty") })
+// Returns: Just(42) - function not called
 
-// None: converts to Failure (empty becomes error)
-result := maybe.Empty[int]().FailIfEmpty(errors.New("value required"))
+// None: converts to Failure (empty becomes error, function called)
+result := maybe.Empty[int]().FailIfEmpty(func() error { return errors.New("value required") })
 // Returns: Fail[int]("value required")
 
-// Failure: returns unchanged (preserves original error)
+// Failure: returns unchanged (preserves original error, function not called)
 result := maybe.Fail[int](errors.New("original")).
-    FailIfEmpty(errors.New("new"))
-// Returns: Fail[int]("original") - new error ignored
+    FailIfEmpty(func() error { return errors.New("new") })
+// Returns: Fail[int]("original") - function not called
 
 // Practical example: required field validation
 func validateUser(name string, age int) maybe.Maybe[User] {
     return findUser(name).  // returns Maybe[User]
-        FailIfEmpty(errors.New("user not found")).
+        FailIfEmpty(func() error { return errors.New("user not found") }).
         Filter(func(u User) bool { return u.Age == age }).
-        FailIfEmpty(errors.New("age mismatch"))
+        FailIfEmpty(func() error { return errors.New("age mismatch") })
 }
 
 // Practical example: database query with required result
 func getUserByID(id int) (User, error) {
     return queryUser(id).  // returns Maybe[User]
-        FailIfEmpty(errors.New("user not found")).
+        FailIfEmpty(func() error { return errors.New("user not found") }).
         Get()  // converts to (User, error)
 }
 
 // Railway-oriented programming with FailIfEmpty
 result := fetchConfig().
-    FailIfEmpty(errors.New("config not found")).
+    FailIfEmpty(func() error { return errors.New("config not found") }).
     Filter(func(c Config) bool { return c.IsValid() }).
-    FailIfEmpty(errors.New("config invalid")).
+    FailIfEmpty(func() error { return errors.New("config invalid") }).
     Map(func(c Config) any { return c.Apply() })
 // First error in chain is propagated
 ```
@@ -345,7 +345,7 @@ type Maybe[T any] interface {
     Get() (T, error)
     OrElseGet(fn func(error) T) T
     OrElseDefault(v T) T
-    FailIfEmpty(err error) Maybe[T]
+    FailIfEmpty(fn func() error) Maybe[T]
     MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 }
 ```
@@ -361,7 +361,7 @@ func (s Some[T]) Then(fn func(T)) Maybe[T]
 func (s Some[T]) Get() (T, error)
 func (s Some[T]) OrElseGet(fn func(error) T) T
 func (s Some[T]) OrElseDefault(v T) T
-func (s Some[T]) FailIfEmpty(err error) Maybe[T]
+func (s Some[T]) FailIfEmpty(fn func() error) Maybe[T]
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
@@ -376,7 +376,7 @@ func (n None[T]) Then(fn func(T)) Maybe[T]
 func (n None[T]) Get() (T, error)
 func (n None[T]) OrElseGet(fn func(error) T) T
 func (n None[T]) OrElseDefault(v T) T
-func (n None[T]) FailIfEmpty(err error) Maybe[T]
+func (n None[T]) FailIfEmpty(fn func() error) Maybe[T]
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
@@ -391,7 +391,7 @@ func (f Failure[T]) Then(fn func(T)) Maybe[T]
 func (f Failure[T]) Get() (T, error)
 func (f Failure[T]) OrElseGet(fn func(error) T) T
 func (f Failure[T]) OrElseDefault(v T) T
-func (f Failure[T]) FailIfEmpty(err error) Maybe[T]
+func (f Failure[T]) FailIfEmpty(fn func() error) Maybe[T]
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 

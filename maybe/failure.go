@@ -98,13 +98,13 @@ func (f Failure[T]) OrElseDefault(v T) T {
 }
 
 // FailIfEmpty returns the original Failure unchanged, preserving the original error.
-// The provided error is ignored because Failure already contains an error.
+// The provided function is not called because Failure already contains an error.
 //
 // Example:
 //
 //	failure := Fail[int](errors.New("database error"))
-//	result := failure.FailIfEmpty(errors.New("empty")) // returns Fail[int]("database error"), new error ignored
-func (f Failure[T]) FailIfEmpty(err error) Maybe[T] {
+//	result := failure.FailIfEmpty(func() error { return errors.New("empty") }) // returns Fail[int]("database error"), function not called
+func (f Failure[T]) FailIfEmpty(fn func() error) Maybe[T] {
 	return f
 }
 

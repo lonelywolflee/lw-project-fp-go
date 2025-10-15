@@ -843,7 +843,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 	t.Run("returns original Some when value present", func(t *testing.T) {
 		some := maybe.Just(42)
 		err := errors.New("should be ignored")
-		result := some.FailIfEmpty(err)
+		result := some.FailIfEmpty(func() error { return err })
 
 		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
@@ -858,7 +858,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 	t.Run("ignores provided error when value present", func(t *testing.T) {
 		some := maybe.Just("hello")
 		err := errors.New("this error should be ignored")
-		result := some.FailIfEmpty(err)
+		result := some.FailIfEmpty(func() error { return err })
 
 		resultSome, ok := result.(maybe.Some[string])
 		if !ok {
@@ -882,7 +882,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 	t.Run("works with zero values", func(t *testing.T) {
 		some := maybe.Just(0)
 		err := errors.New("zero is a valid value")
-		result := some.FailIfEmpty(err)
+		result := some.FailIfEmpty(func() error { return err })
 
 		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
@@ -902,7 +902,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		user := User{Name: "Alice", Age: 30}
 		some := maybe.Just(user)
 		err := errors.New("should be ignored")
-		result := some.FailIfEmpty(err)
+		result := some.FailIfEmpty(func() error { return err })
 
 		resultSome, ok := result.(maybe.Some[User])
 		if !ok {
@@ -918,7 +918,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		num := 42
 		some := maybe.Just(&num)
 		err := errors.New("should be ignored")
-		result := some.FailIfEmpty(err)
+		result := some.FailIfEmpty(func() error { return err })
 
 		resultSome, ok := result.(maybe.Some[*int])
 		if !ok {
@@ -932,7 +932,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 
 	t.Run("can be chained with Map", func(t *testing.T) {
 		result := maybe.Just(10).
-			FailIfEmpty(errors.New("should be ignored")).
+			FailIfEmpty(func() error { return errors.New("should be ignored") }).
 			Map(func(x int) any { return x * 2 })
 
 		resultSome, ok := result.(maybe.Some[any])
@@ -947,7 +947,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 
 	t.Run("can be chained with Filter", func(t *testing.T) {
 		result := maybe.Just(10).
-			FailIfEmpty(errors.New("should be ignored")).
+			FailIfEmpty(func() error { return errors.New("should be ignored") }).
 			Filter(func(x int) bool { return x > 5 })
 
 		resultSome, ok := result.(maybe.Some[int])
@@ -962,9 +962,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 
 	t.Run("preserves value through multiple FailIfEmpty calls", func(t *testing.T) {
 		result := maybe.Just(5).
-			FailIfEmpty(errors.New("error 1")).
-			FailIfEmpty(errors.New("error 2")).
-			FailIfEmpty(errors.New("error 3"))
+			FailIfEmpty(func() error { return errors.New("error 1") }).
+			FailIfEmpty(func() error { return errors.New("error 2") }).
+			FailIfEmpty(func() error { return errors.New("error 3") })
 
 		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
@@ -978,7 +978,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 
 	t.Run("works with nil error", func(t *testing.T) {
 		some := maybe.Just(42)
-		result := some.FailIfEmpty(nil)
+		result := some.FailIfEmpty(func() error { return nil })
 
 		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
