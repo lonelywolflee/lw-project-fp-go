@@ -380,6 +380,18 @@ go test -v ./...
 go test -cover ./...
 ```
 
+### Project Structure
+
+The `maybe` package is organized as follows:
+
+- **maybe.go** - Core `Maybe[T]` interface definition
+- **constructor.go** - Constructor functions (`Just`, `Empty`, `Fail`)
+- **some.go** - `Some[T]` implementation (value present)
+- **none.go** - `None[T]` implementation (value absent)
+- **failure.go** - `Failure[T]` implementation (error state)
+- **helper.go** - Helper functions (`Do` for panic recovery)
+- **\*_test.go** - Comprehensive test suite with 100% coverage
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
