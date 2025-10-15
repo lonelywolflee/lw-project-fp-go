@@ -1,4 +1,4 @@
-package lwfp
+package maybe
 
 // Failure represents a Maybe that contains an error.
 // It is one of the three concrete implementations of the Maybe interface.

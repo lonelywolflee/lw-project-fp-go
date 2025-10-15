@@ -1,4 +1,4 @@
-package lwfp
+package maybe
 
 import (
 	"errors"

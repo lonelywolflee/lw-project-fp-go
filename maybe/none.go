@@ -1,4 +1,4 @@
-package lwfp
+package maybe
 
 // None represents a Maybe that contains no value.
 // It is one of the three concrete implementations of the Maybe interface.

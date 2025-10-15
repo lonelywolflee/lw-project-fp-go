@@ -1,21 +1,23 @@
-package lwfp
+package maybe_test
 
 import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
 func TestSome_GetValue(t *testing.T) {
 	t.Run("returns the wrapped value", func(t *testing.T) {
-		some := Some[int]{v: 42}
+		some := maybe.Just(42)
 		if some.GetValue() != 42 {
 			t.Errorf("expected 42, got %d", some.GetValue())
 		}
 	})
 
 	t.Run("returns string value", func(t *testing.T) {
-		some := Some[string]{v: "test"}
+		some := maybe.Just("test")
 		if some.GetValue() != "test" {
 			t.Errorf("expected 'test', got %s", some.GetValue())
 		}
@@ -24,10 +26,10 @@ func TestSome_GetValue(t *testing.T) {
 
 func TestSome_Map(t *testing.T) {
 	t.Run("transforms value successfully", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		result := some.Map(func(x int) any { return x * 2 })
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("Map should return Some type")
 		}
@@ -37,10 +39,10 @@ func TestSome_Map(t *testing.T) {
 	})
 
 	t.Run("handles string transformation", func(t *testing.T) {
-		some := Just("hello")
+		some := maybe.Just("hello")
 		result := some.Map(func(x string) any { return x + " world" })
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("Map should return Some type")
 		}
@@ -50,12 +52,12 @@ func TestSome_Map(t *testing.T) {
 	})
 
 	t.Run("catches panic and converts to Failure", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		result := some.Map(func(x int) any {
 			panic("something went wrong")
 		})
 
-		failure, ok := result.(Failure[any])
+		failure, ok := result.(maybe.Failure[any])
 		if !ok {
 			t.Fatal("Map should return Failure when panic occurs")
 		}
@@ -65,13 +67,13 @@ func TestSome_Map(t *testing.T) {
 	})
 
 	t.Run("catches panic with error type", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		testErr := errors.New("test error")
 		result := some.Map(func(x int) any {
 			panic(testErr)
 		})
 
-		failure, ok := result.(Failure[any])
+		failure, ok := result.(maybe.Failure[any])
 		if !ok {
 			t.Fatal("Map should return Failure when panic occurs")
 		}
@@ -81,13 +83,13 @@ func TestSome_Map(t *testing.T) {
 	})
 
 	t.Run("handles nil pointer dereference panic", func(t *testing.T) {
-		some := Just(10)
+		some := maybe.Just(10)
 		result := some.Map(func(x int) any {
 			var ptr *int
 			return *ptr // This will panic
 		})
 
-		_, ok := result.(Failure[any])
+		_, ok := result.(maybe.Failure[any])
 		if !ok {
 			t.Fatal("Map should return Failure when panic occurs")
 		}
@@ -96,12 +98,12 @@ func TestSome_Map(t *testing.T) {
 
 func TestSome_FlatMap(t *testing.T) {
 	t.Run("chains Maybe values successfully", func(t *testing.T) {
-		some := Just(5)
-		result := some.FlatMap(func(x int) Maybe[any] {
-			return Just[any](x * 2)
+		some := maybe.Just(5)
+		result := some.FlatMap(func(x int) maybe.Maybe[any] {
+			return maybe.Just[any](x * 2)
 		})
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("FlatMap should return Some type")
 		}
@@ -111,31 +113,31 @@ func TestSome_FlatMap(t *testing.T) {
 	})
 
 	t.Run("returns Empty when function returns Empty", func(t *testing.T) {
-		some := Just(5)
-		result := some.FlatMap(func(x int) Maybe[any] {
+		some := maybe.Just(5)
+		result := some.FlatMap(func(x int) maybe.Maybe[any] {
 			if x < 10 {
-				return Empty[any]()
+				return maybe.Empty[any]()
 			}
-			return Just[any](x)
+			return maybe.Just[any](x)
 		})
 
-		_, ok := result.(None[any])
+		_, ok := result.(maybe.None[any])
 		if !ok {
 			t.Fatal("FlatMap should return None when function returns Empty")
 		}
 	})
 
 	t.Run("returns Failure when function returns Failure", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		testErr := errors.New("validation error")
-		result := some.FlatMap(func(x int) Maybe[any] {
+		result := some.FlatMap(func(x int) maybe.Maybe[any] {
 			if x < 10 {
-				return Fail[any](testErr)
+				return maybe.Fail[any](testErr)
 			}
-			return Just[any](x)
+			return maybe.Just[any](x)
 		})
 
-		failure, ok := result.(Failure[any])
+		failure, ok := result.(maybe.Failure[any])
 		if !ok {
 			t.Fatal("FlatMap should return Failure when function returns Failure")
 		}
@@ -145,12 +147,12 @@ func TestSome_FlatMap(t *testing.T) {
 	})
 
 	t.Run("catches panic and converts to Failure", func(t *testing.T) {
-		some := Just(5)
-		result := some.FlatMap(func(x int) Maybe[any] {
+		some := maybe.Just(5)
+		result := some.FlatMap(func(x int) maybe.Maybe[any] {
 			panic("flatmap panic")
 		})
 
-		failure, ok := result.(Failure[any])
+		failure, ok := result.(maybe.Failure[any])
 		if !ok {
 			t.Fatal("FlatMap should return Failure when panic occurs")
 		}
@@ -160,13 +162,13 @@ func TestSome_FlatMap(t *testing.T) {
 	})
 
 	t.Run("catches panic with error type", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		testErr := errors.New("flatmap error")
-		result := some.FlatMap(func(x int) Maybe[any] {
+		result := some.FlatMap(func(x int) maybe.Maybe[any] {
 			panic(testErr)
 		})
 
-		failure, ok := result.(Failure[any])
+		failure, ok := result.(maybe.Failure[any])
 		if !ok {
 			t.Fatal("FlatMap should return Failure when panic occurs")
 		}
@@ -176,14 +178,14 @@ func TestSome_FlatMap(t *testing.T) {
 	})
 
 	t.Run("chains FlatMap with conditional logic", func(t *testing.T) {
-		result := Just(15).FlatMap(func(x int) Maybe[any] {
+		result := maybe.Just(15).FlatMap(func(x int) maybe.Maybe[any] {
 			if x > 10 {
-				return Just[any](x * 2)
+				return maybe.Just[any](x * 2)
 			}
-			return Empty[any]()
+			return maybe.Empty[any]()
 		})
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("FlatMap should return Some type")
 		}
@@ -195,10 +197,10 @@ func TestSome_FlatMap(t *testing.T) {
 
 func TestSome_Filter(t *testing.T) {
 	t.Run("returns Some when predicate is true", func(t *testing.T) {
-		some := Just(10)
+		some := maybe.Just(10)
 		result := some.Filter(func(x int) bool { return x > 5 })
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("Filter should return Some when predicate is true")
 		}
@@ -208,20 +210,20 @@ func TestSome_Filter(t *testing.T) {
 	})
 
 	t.Run("returns None when predicate is false", func(t *testing.T) {
-		some := Just(3)
+		some := maybe.Just(3)
 		result := some.Filter(func(x int) bool { return x > 5 })
 
-		_, ok := result.(None[int])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("Filter should return None when predicate is false")
 		}
 	})
 
 	t.Run("handles string filtering", func(t *testing.T) {
-		some := Just("hello")
+		some := maybe.Just("hello")
 		result := some.Filter(func(x string) bool { return len(x) > 3 })
 
-		resultSome, ok := result.(Some[string])
+		resultSome, ok := result.(maybe.Some[string])
 		if !ok {
 			t.Fatal("Filter should return Some when predicate is true")
 		}
@@ -231,22 +233,22 @@ func TestSome_Filter(t *testing.T) {
 	})
 
 	t.Run("filters out short strings", func(t *testing.T) {
-		some := Just("hi")
+		some := maybe.Just("hi")
 		result := some.Filter(func(x string) bool { return len(x) > 3 })
 
-		_, ok := result.(None[string])
+		_, ok := result.(maybe.None[string])
 		if !ok {
 			t.Fatal("Filter should return None when predicate is false")
 		}
 	})
 
 	t.Run("catches panic and converts to Failure", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		result := some.Filter(func(x int) bool {
 			panic("filter panic")
 		})
 
-		failure, ok := result.(Failure[int])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("Filter should return Failure when panic occurs")
 		}
@@ -256,13 +258,13 @@ func TestSome_Filter(t *testing.T) {
 	})
 
 	t.Run("catches panic with error type", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		testErr := errors.New("filter error")
 		result := some.Filter(func(x int) bool {
 			panic(testErr)
 		})
 
-		failure, ok := result.(Failure[int])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("Filter should return Failure when panic occurs")
 		}
@@ -272,11 +274,11 @@ func TestSome_Filter(t *testing.T) {
 	})
 
 	t.Run("can be chained with Map", func(t *testing.T) {
-		result := Just(10).
+		result := maybe.Just(10).
 			Filter(func(x int) bool { return x > 5 }).
 			Map(func(x int) any { return x * 2 })
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("chained Filter and Map should return Some")
 		}
@@ -286,23 +288,23 @@ func TestSome_Filter(t *testing.T) {
 	})
 
 	t.Run("returns None when filter fails in chain", func(t *testing.T) {
-		result := Just(3).
+		result := maybe.Just(3).
 			Filter(func(x int) bool { return x > 5 }).
 			Map(func(x int) any { return x * 2 })
 
-		_, ok := result.(None[any])
+		_, ok := result.(maybe.None[any])
 		if !ok {
 			t.Fatal("chained Filter should return None when predicate is false")
 		}
 	})
 
 	t.Run("handles complex predicate", func(t *testing.T) {
-		some := Just(42)
+		some := maybe.Just(42)
 		result := some.Filter(func(x int) bool {
 			return x%2 == 0 && x > 10
 		})
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("Filter should return Some when complex predicate is true")
 		}
@@ -317,7 +319,7 @@ func TestSome_Then(t *testing.T) {
 		executed := false
 		var capturedValue int
 
-		some := Just(10)
+		some := maybe.Just(10)
 		result := some.Then(func(x int) {
 			executed = true
 			capturedValue = x
@@ -330,7 +332,7 @@ func TestSome_Then(t *testing.T) {
 			t.Errorf("expected captured value 10, got %d", capturedValue)
 		}
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("Then should return Some type")
 		}
@@ -342,7 +344,7 @@ func TestSome_Then(t *testing.T) {
 	t.Run("can be used for logging", func(t *testing.T) {
 		var loggedValue string
 
-		result := Just("hello").Then(func(x string) {
+		result := maybe.Just("hello").Then(func(x string) {
 			loggedValue = "Logged: " + x
 		})
 
@@ -350,7 +352,7 @@ func TestSome_Then(t *testing.T) {
 			t.Errorf("expected 'Logged: hello', got %s", loggedValue)
 		}
 
-		resultSome, ok := result.(Some[string])
+		resultSome, ok := result.(maybe.Some[string])
 		if !ok {
 			t.Fatal("Then should return Some type")
 		}
@@ -360,12 +362,12 @@ func TestSome_Then(t *testing.T) {
 	})
 
 	t.Run("catches panic and converts to Failure", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		result := some.Then(func(x int) {
 			panic("then panic")
 		})
 
-		failure, ok := result.(Failure[int])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("Then should return Failure when panic occurs")
 		}
@@ -375,13 +377,13 @@ func TestSome_Then(t *testing.T) {
 	})
 
 	t.Run("catches panic with error type", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		testErr := errors.New("then error")
 		result := some.Then(func(x int) {
 			panic(testErr)
 		})
 
-		failure, ok := result.(Failure[int])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("Then should return Failure when panic occurs")
 		}
@@ -393,7 +395,7 @@ func TestSome_Then(t *testing.T) {
 	t.Run("can be chained with Map", func(t *testing.T) {
 		var sideEffect int
 
-		result := Just(10).
+		result := maybe.Just(10).
 			Then(func(x int) { sideEffect = x }).
 			Map(func(x int) any { return x * 2 })
 
@@ -401,7 +403,7 @@ func TestSome_Then(t *testing.T) {
 			t.Errorf("expected side effect to be 10, got %d", sideEffect)
 		}
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("chained Then and Map should return Some")
 		}
@@ -413,7 +415,7 @@ func TestSome_Then(t *testing.T) {
 	t.Run("can be chained multiple times", func(t *testing.T) {
 		var log []string
 
-		result := Just(5).
+		result := maybe.Just(5).
 			Then(func(x int) { log = append(log, "first") }).
 			Then(func(x int) { log = append(log, "second") }).
 			Then(func(x int) { log = append(log, "third") })
@@ -425,7 +427,7 @@ func TestSome_Then(t *testing.T) {
 			t.Errorf("expected [first second third], got %v", log)
 		}
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("chained Then should return Some type")
 		}
@@ -435,13 +437,13 @@ func TestSome_Then(t *testing.T) {
 	})
 
 	t.Run("does not change value", func(t *testing.T) {
-		original := Just(42)
+		original := maybe.Just(42)
 		result := original.Then(func(x int) {
 			// Try to modify (won't affect original)
 			x = 100
 		})
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("Then should return Some type")
 		}
@@ -453,7 +455,7 @@ func TestSome_Then(t *testing.T) {
 
 func TestSome_OrElseGet(t *testing.T) {
 	t.Run("returns the value and does not call function", func(t *testing.T) {
-		some := Just(42)
+		some := maybe.Just(42)
 		called := false
 		result := some.OrElseGet(func() int {
 			called = true
@@ -469,7 +471,7 @@ func TestSome_OrElseGet(t *testing.T) {
 	})
 
 	t.Run("returns string value without calling function", func(t *testing.T) {
-		some := Just("hello")
+		some := maybe.Just("hello")
 		result := some.OrElseGet(func() string { return "default" })
 
 		if result != "hello" {
@@ -478,7 +480,7 @@ func TestSome_OrElseGet(t *testing.T) {
 	})
 
 	t.Run("function can panic but never called", func(t *testing.T) {
-		some := Just(10)
+		some := maybe.Just(10)
 		result := some.OrElseGet(func() int {
 			panic("this should never be called")
 		})
@@ -489,7 +491,7 @@ func TestSome_OrElseGet(t *testing.T) {
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
-		some := Just([]int{1, 2, 3})
+		some := maybe.Just([]int{1, 2, 3})
 		result := some.OrElseGet(func() []int { return []int{} })
 
 		if len(result) != 3 {
@@ -501,7 +503,7 @@ func TestSome_OrElseGet(t *testing.T) {
 	})
 
 	t.Run("works with zero values", func(t *testing.T) {
-		some := Just(0)
+		some := maybe.Just(0)
 		result := some.OrElseGet(func() int { return 42 })
 
 		if result != 0 {
@@ -512,7 +514,7 @@ func TestSome_OrElseGet(t *testing.T) {
 
 func TestSome_OrElseDefault(t *testing.T) {
 	t.Run("returns the value and ignores default", func(t *testing.T) {
-		some := Just(42)
+		some := maybe.Just(42)
 		result := some.OrElseDefault(0)
 
 		if result != 42 {
@@ -521,7 +523,7 @@ func TestSome_OrElseDefault(t *testing.T) {
 	})
 
 	t.Run("returns string value ignoring default", func(t *testing.T) {
-		some := Just("hello")
+		some := maybe.Just("hello")
 		result := some.OrElseDefault("default")
 
 		if result != "hello" {
@@ -530,7 +532,7 @@ func TestSome_OrElseDefault(t *testing.T) {
 	})
 
 	t.Run("works with different types", func(t *testing.T) {
-		some := Just([]int{1, 2, 3})
+		some := maybe.Just([]int{1, 2, 3})
 		result := some.OrElseDefault([]int{})
 
 		if len(result) != 3 {
@@ -542,7 +544,7 @@ func TestSome_OrElseDefault(t *testing.T) {
 	})
 
 	t.Run("works with zero values", func(t *testing.T) {
-		some := Just(0)
+		some := maybe.Just(0)
 		result := some.OrElseDefault(42)
 
 		if result != 0 {
@@ -551,7 +553,7 @@ func TestSome_OrElseDefault(t *testing.T) {
 	})
 
 	t.Run("can use same value as default", func(t *testing.T) {
-		some := Just(10)
+		some := maybe.Just(10)
 		result := some.OrElseDefault(10)
 
 		if result != 10 {
@@ -562,7 +564,7 @@ func TestSome_OrElseDefault(t *testing.T) {
 
 func TestSome_MatchThen(t *testing.T) {
 	t.Run("executes someFn and returns original Some", func(t *testing.T) {
-		some := Just(42)
+		some := maybe.Just(42)
 		var capturedValue int
 		someCalled := false
 		noneCalled := false
@@ -590,7 +592,7 @@ func TestSome_MatchThen(t *testing.T) {
 			t.Errorf("expected captured value 42, got %d", capturedValue)
 		}
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
@@ -600,7 +602,7 @@ func TestSome_MatchThen(t *testing.T) {
 	})
 
 	t.Run("can be used for logging", func(t *testing.T) {
-		some := Just("hello")
+		some := maybe.Just("hello")
 		var log string
 
 		result := some.MatchThen(
@@ -613,7 +615,7 @@ func TestSome_MatchThen(t *testing.T) {
 			t.Errorf("expected 'Got value: hello', got %s", log)
 		}
 
-		resultSome, ok := result.(Some[string])
+		resultSome, ok := result.(maybe.Some[string])
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
@@ -623,7 +625,7 @@ func TestSome_MatchThen(t *testing.T) {
 	})
 
 	t.Run("catches panic in someFn and converts to Failure", func(t *testing.T) {
-		some := Just(10)
+		some := maybe.Just(10)
 
 		result := some.MatchThen(
 			func(x int) { panic("someFn panic") },
@@ -631,7 +633,7 @@ func TestSome_MatchThen(t *testing.T) {
 			func(err error) {},
 		)
 
-		failure, ok := result.(Failure[int])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("MatchThen should return Failure when someFn panics")
 		}
@@ -641,7 +643,7 @@ func TestSome_MatchThen(t *testing.T) {
 	})
 
 	t.Run("catches panic with error type in someFn", func(t *testing.T) {
-		some := Just(5)
+		some := maybe.Just(5)
 		testErr := errors.New("test error")
 
 		result := some.MatchThen(
@@ -650,7 +652,7 @@ func TestSome_MatchThen(t *testing.T) {
 			func(err error) {},
 		)
 
-		failure, ok := result.(Failure[int])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("MatchThen should return Failure when someFn panics")
 		}
@@ -660,7 +662,7 @@ func TestSome_MatchThen(t *testing.T) {
 	})
 
 	t.Run("noneFn and failureFn can panic but never called", func(t *testing.T) {
-		some := Just(100)
+		some := maybe.Just(100)
 		someCalled := false
 
 		result := some.MatchThen(
@@ -673,7 +675,7 @@ func TestSome_MatchThen(t *testing.T) {
 			t.Error("someFn should be called")
 		}
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
@@ -685,7 +687,7 @@ func TestSome_MatchThen(t *testing.T) {
 	t.Run("can be chained with Map", func(t *testing.T) {
 		var sideEffect string
 
-		result := Just(5).
+		result := maybe.Just(5).
 			MatchThen(
 				func(x int) { sideEffect = fmt.Sprintf("Processing %d", x) },
 				func() { sideEffect = "none" },
@@ -697,7 +699,7 @@ func TestSome_MatchThen(t *testing.T) {
 			t.Errorf("expected 'Processing 5', got %s", sideEffect)
 		}
 
-		resultSome, ok := result.(Some[any])
+		resultSome, ok := result.(maybe.Some[any])
 		if !ok {
 			t.Fatal("chained operations should return Some")
 		}
@@ -709,7 +711,7 @@ func TestSome_MatchThen(t *testing.T) {
 	t.Run("can be chained multiple times", func(t *testing.T) {
 		var log []string
 
-		result := Just(10).
+		result := maybe.Just(10).
 			MatchThen(
 				func(x int) { log = append(log, "first") },
 				func() { log = append(log, "none") },
@@ -725,7 +727,7 @@ func TestSome_MatchThen(t *testing.T) {
 			t.Errorf("expected [first second], got %v", log)
 		}
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("chained MatchThen should return Some type")
 		}
@@ -735,14 +737,14 @@ func TestSome_MatchThen(t *testing.T) {
 	})
 
 	t.Run("does not change value", func(t *testing.T) {
-		original := Just(42)
+		original := maybe.Just(42)
 		result := original.MatchThen(
 			func(x int) { /* no-op */ },
 			func() {},
 			func(err error) {},
 		)
 
-		resultSome, ok := result.(Some[int])
+		resultSome, ok := result.(maybe.Some[int])
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}

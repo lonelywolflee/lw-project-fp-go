@@ -1,4 +1,4 @@
-package lwfp
+package maybe
 
 // Maybe is a monad that represents an optional value or a computation that might fail.
 // It provides a functional programming approach to handle nullable values and errors.
@@ -110,7 +110,7 @@ type Maybe[T any] interface {
 //	maybe := Just(42)
 //	// To get the value with type safety, cast to Some and use GetValue():
 //	value := maybe.(Some[int]).GetValue() // returns 42 as int
-func Just[T any](v T) Maybe[T] {
+func Just[T any](v T) Some[T] {
 	return Some[T]{v: v}
 }
 
@@ -124,7 +124,7 @@ func Just[T any](v T) Maybe[T] {
 //	if _, ok := maybe.(None[int]); ok {
 //	    // Handle empty case
 //	}
-func Empty[T any]() Maybe[T] {
+func Empty[T any]() None[T] {
 	return None[T]{}
 }
 
@@ -136,6 +136,6 @@ func Empty[T any]() Maybe[T] {
 //	maybe := Fail[int](errors.New("something went wrong"))
 //	// To get the error, cast to Failure and use GetError():
 //	err := maybe.(Failure[int]).GetError() // returns the error
-func Fail[T any](e error) Maybe[T] {
+func Fail[T any](e error) Failure[T] {
 	return Failure[T]{e: e}
 }
