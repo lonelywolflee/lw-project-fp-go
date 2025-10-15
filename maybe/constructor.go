@@ -6,8 +6,7 @@ package maybe
 // Example:
 //
 //	maybe := Just(42)
-//	// To get the value with type safety, cast to Some and use GetValue():
-//	value := maybe.(Some[int]).GetValue() // returns 42 as int
+//	value, err := maybe.Get() // returns 42 and nil error
 func Just[T any](v T) Some[T] {
 	return Some[T]{v: v}
 }
@@ -32,8 +31,7 @@ func Empty[T any]() None[T] {
 // Example:
 //
 //	maybe := Fail[int](errors.New("something went wrong"))
-//	// To get the error, cast to Failure and use GetError():
-//	err := maybe.(Failure[int]).GetError() // returns the error
+//	_, err := maybe.Get() // returns zero value and the error
 func Fail[T any](e error) Failure[T] {
 	return Failure[T]{e: e}
 }

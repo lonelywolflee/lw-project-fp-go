@@ -10,22 +10,25 @@ import (
 func TestJust(t *testing.T) {
 	t.Run("creates Some with integer value", func(t *testing.T) {
 		some := maybe.Just(42)
-		if some.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", some.GetValue())
+		value, _ := some.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
 		}
 	})
 
 	t.Run("creates Some with string value", func(t *testing.T) {
 		some := maybe.Just("hello")
-		if some.GetValue() != "hello" {
-			t.Errorf("expected 'hello', got %s", some.GetValue())
+		value, _ := some.Get()
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
 		}
 	})
 
 	t.Run("creates Some with nil pointer", func(t *testing.T) {
 		var ptr *int = nil
 		some := maybe.Just(ptr)
-		if some.GetValue() != nil {
+		value, _ := some.Get()
+		if value != nil {
 			t.Error("expected nil pointer")
 		}
 	})
@@ -49,16 +52,18 @@ func TestFail(t *testing.T) {
 	t.Run("creates Failure with error", func(t *testing.T) {
 		err := errors.New("test error")
 		failure := maybe.Fail[int](err)
-		if failure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
 	t.Run("creates Failure with different error message", func(t *testing.T) {
 		err := errors.New("another error")
 		failure := maybe.Fail[string](err)
-		if failure.GetError().Error() != "another error" {
-			t.Errorf("expected 'another error', got %s", failure.GetError().Error())
+		_, gotErr := failure.Get()
+		if gotErr.Error() != "another error" {
+			t.Errorf("expected 'another error', got %s", gotErr.Error())
 		}
 	})
 }

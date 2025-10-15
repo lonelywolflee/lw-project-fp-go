@@ -524,8 +524,9 @@ func TestNone_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when noneFn panics")
 		}
-		if failure.GetError().Error() != "noneFn panic" {
-			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		_, gotErr := failure.Get()
+		if gotErr.Error() != "noneFn panic" {
+			t.Errorf("expected panic message, got %s", gotErr.Error())
 		}
 	})
 
@@ -543,8 +544,9 @@ func TestNone_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when noneFn panics")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != testErr {
+			t.Errorf("expected %v, got %v", testErr, gotErr)
 		}
 	})
 
@@ -639,8 +641,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should convert None to Failure")
 		}
-		if failure.GetError() != err {
-			t.Errorf("expected error %v, got %v", err, failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != err {
+			t.Errorf("expected error %v, got %v", err, gotErr)
 		}
 	})
 
@@ -653,8 +656,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should convert None to Failure")
 		}
-		if failure.GetError().Error() != "custom error message" {
-			t.Errorf("expected 'custom error message', got %s", failure.GetError().Error())
+		_, gotErr := failure.Get()
+		if gotErr.Error() != "custom error message" {
+			t.Errorf("expected 'custom error message', got %s", gotErr.Error())
 		}
 	})
 
@@ -691,8 +695,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should convert None to Failure")
 		}
-		if failure.GetError() != err {
-			t.Errorf("expected error %v, got %v", err, failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != err {
+			t.Errorf("expected error %v, got %v", err, gotErr)
 		}
 	})
 
@@ -705,8 +710,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("chain should return Failure when None is converted to Failure")
 		}
-		if failure.GetError().Error() != "value is empty" {
-			t.Errorf("expected 'value is empty', got %s", failure.GetError().Error())
+		_, gotErr := failure.Get()
+		if gotErr.Error() != "value is empty" {
+			t.Errorf("expected 'value is empty', got %s", gotErr.Error())
 		}
 	})
 
@@ -721,8 +727,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("error should propagate through chain")
 		}
-		if failure.GetError() != originalErr {
-			t.Errorf("expected original error, got %v", failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected original error, got %v", gotErr)
 		}
 	})
 
@@ -735,8 +742,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should convert None to Failure for required fields")
 		}
-		if failure.GetError().Error() != "name is required" {
-			t.Errorf("expected 'name is required', got %s", failure.GetError().Error())
+		_, gotErr := failure.Get()
+		if gotErr.Error() != "name is required" {
+			t.Errorf("expected 'name is required', got %s", gotErr.Error())
 		}
 	})
 
@@ -748,8 +756,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should convert None to Failure even with nil error")
 		}
-		if failure.GetError() != nil {
-			t.Errorf("expected nil error, got %v", failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != nil {
+			t.Errorf("expected nil error, got %v", gotErr)
 		}
 	})
 
@@ -773,8 +782,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("result should be Failure")
 		}
-		if failure.GetError() != err {
-			t.Errorf("expected error %v, got %v", err, failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != err {
+			t.Errorf("expected error %v, got %v", err, gotErr)
 		}
 	})
 }

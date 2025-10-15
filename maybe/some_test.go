@@ -8,21 +8,8 @@ import (
 	"github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
-func TestSome_GetValue(t *testing.T) {
-	t.Run("returns the wrapped value", func(t *testing.T) {
-		some := maybe.Just(42)
-		if some.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", some.GetValue())
-		}
-	})
-
-	t.Run("returns string value", func(t *testing.T) {
-		some := maybe.Just("test")
-		if some.GetValue() != "test" {
-			t.Errorf("expected 'test', got %s", some.GetValue())
-		}
-	})
-}
+// TestSome_GetValue is removed - use TestSome_Get instead
+// Get() is now the unified interface method for accessing values
 
 func TestSome_Get(t *testing.T) {
 	t.Run("returns value and nil error", func(t *testing.T) {
@@ -101,8 +88,9 @@ func TestSome_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Map should return Some type")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %v", value)
 		}
 	})
 
@@ -114,8 +102,9 @@ func TestSome_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Map should return Some type")
 		}
-		if resultSome.GetValue() != "hello world" {
-			t.Errorf("expected 'hello world', got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != "hello world" {
+			t.Errorf("expected 'hello world', got %v", value)
 		}
 	})
 
@@ -129,8 +118,9 @@ func TestSome_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Map should return Failure when panic occurs")
 		}
-		if failure.GetError().Error() != "something went wrong" {
-			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "something went wrong" {
+			t.Errorf("expected panic message, got %s", err.Error())
 		}
 	})
 
@@ -145,8 +135,9 @@ func TestSome_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Map should return Failure when panic occurs")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -175,8 +166,9 @@ func TestSome_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("FlatMap should return Some type")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %v", value)
 		}
 	})
 
@@ -209,8 +201,9 @@ func TestSome_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("FlatMap should return Failure when function returns Failure")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -224,8 +217,9 @@ func TestSome_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("FlatMap should return Failure when panic occurs")
 		}
-		if failure.GetError().Error() != "flatmap panic" {
-			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "flatmap panic" {
+			t.Errorf("expected panic message, got %s", err.Error())
 		}
 	})
 
@@ -240,8 +234,9 @@ func TestSome_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("FlatMap should return Failure when panic occurs")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -257,8 +252,9 @@ func TestSome_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("FlatMap should return Some type")
 		}
-		if resultSome.GetValue() != 30 {
-			t.Errorf("expected 30, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 30 {
+			t.Errorf("expected 30, got %v", value)
 		}
 	})
 }
@@ -272,8 +268,9 @@ func TestSome_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Filter should return Some when predicate is true")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %d", value)
 		}
 	})
 
@@ -295,8 +292,9 @@ func TestSome_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Filter should return Some when predicate is true")
 		}
-		if resultSome.GetValue() != "hello" {
-			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
 		}
 	})
 
@@ -320,8 +318,9 @@ func TestSome_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Filter should return Failure when panic occurs")
 		}
-		if failure.GetError().Error() != "filter panic" {
-			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "filter panic" {
+			t.Errorf("expected panic message, got %s", err.Error())
 		}
 	})
 
@@ -336,8 +335,9 @@ func TestSome_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Filter should return Failure when panic occurs")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -350,8 +350,9 @@ func TestSome_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("chained Filter and Map should return Some")
 		}
-		if resultSome.GetValue() != 20 {
-			t.Errorf("expected 20, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 20 {
+			t.Errorf("expected 20, got %v", value)
 		}
 	})
 
@@ -376,8 +377,9 @@ func TestSome_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Filter should return Some when complex predicate is true")
 		}
-		if resultSome.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
 		}
 	})
 }
@@ -404,8 +406,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Then should return Some type")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %d", value)
 		}
 	})
 
@@ -424,8 +427,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Then should return Some type")
 		}
-		if resultSome.GetValue() != "hello" {
-			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
 		}
 	})
 
@@ -439,8 +443,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Then should return Failure when panic occurs")
 		}
-		if failure.GetError().Error() != "then panic" {
-			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "then panic" {
+			t.Errorf("expected panic message, got %s", err.Error())
 		}
 	})
 
@@ -455,8 +460,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Then should return Failure when panic occurs")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -475,8 +481,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("chained Then and Map should return Some")
 		}
-		if resultSome.GetValue() != 20 {
-			t.Errorf("expected 20, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 20 {
+			t.Errorf("expected 20, got %v", value)
 		}
 	})
 
@@ -499,8 +506,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("chained Then should return Some type")
 		}
-		if resultSome.GetValue() != 5 {
-			t.Errorf("expected 5, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 5 {
+			t.Errorf("expected 5, got %d", value)
 		}
 	})
 
@@ -515,8 +523,9 @@ func TestSome_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Then should return Some type")
 		}
-		if resultSome.GetValue() != 42 {
-			t.Errorf("value should remain 42, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("value should remain 42, got %d", value)
 		}
 	})
 }
@@ -664,8 +673,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
-		if resultSome.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
 		}
 	})
 
@@ -687,8 +697,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
-		if resultSome.GetValue() != "hello" {
-			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
 		}
 	})
 
@@ -705,8 +716,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when someFn panics")
 		}
-		if failure.GetError().Error() != "someFn panic" {
-			t.Errorf("expected panic message, got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "someFn panic" {
+			t.Errorf("expected panic message, got %s", err.Error())
 		}
 	})
 
@@ -724,8 +736,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when someFn panics")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -747,8 +760,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
-		if resultSome.GetValue() != 100 {
-			t.Errorf("expected 100, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 100 {
+			t.Errorf("expected 100, got %d", value)
 		}
 	})
 
@@ -771,8 +785,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("chained operations should return Some")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %v", value)
 		}
 	})
 
@@ -799,8 +814,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("chained MatchThen should return Some type")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %d", value)
 		}
 	})
 
@@ -816,8 +832,9 @@ func TestSome_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Some type")
 		}
-		if resultSome.GetValue() != 42 {
-			t.Errorf("value should remain 42, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("value should remain 42, got %d", value)
 		}
 	})
 }
@@ -832,8 +849,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Some when value is present")
 		}
-		if resultSome.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
 		}
 	})
 
@@ -846,8 +864,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Some when value is present")
 		}
-		if resultSome.GetValue() != "hello" {
-			t.Errorf("expected 'hello', got %s", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
 		}
 
 		// Verify no error is present
@@ -869,8 +888,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Some for zero value")
 		}
-		if resultSome.GetValue() != 0 {
-			t.Errorf("expected 0, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 0 {
+			t.Errorf("expected 0, got %d", value)
 		}
 	})
 
@@ -888,7 +908,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Some when value is present")
 		}
-		resultUser := resultSome.GetValue()
+		resultUser, _ := resultSome.Get()
 		if resultUser.Name != "Alice" || resultUser.Age != 30 {
 			t.Errorf("expected User{Alice, 30}, got %+v", resultUser)
 		}
@@ -904,7 +924,7 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Some when value is present")
 		}
-		resultPtr := resultSome.GetValue()
+		resultPtr, _ := resultSome.Get()
 		if resultPtr == nil || *resultPtr != 42 {
 			t.Errorf("expected pointer to 42, got %v", resultPtr)
 		}
@@ -919,8 +939,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("chained FailIfEmpty and Map should return Some")
 		}
-		if resultSome.GetValue() != 20 {
-			t.Errorf("expected 20, got %v", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 20 {
+			t.Errorf("expected 20, got %v", value)
 		}
 	})
 
@@ -933,8 +954,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("chained FailIfEmpty and Filter should return Some")
 		}
-		if resultSome.GetValue() != 10 {
-			t.Errorf("expected 10, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 10 {
+			t.Errorf("expected 10, got %d", value)
 		}
 	})
 
@@ -948,8 +970,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("multiple FailIfEmpty calls should return Some")
 		}
-		if resultSome.GetValue() != 5 {
-			t.Errorf("expected 5, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 5 {
+			t.Errorf("expected 5, got %d", value)
 		}
 	})
 
@@ -961,8 +984,9 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Some even with nil error")
 		}
-		if resultSome.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", resultSome.GetValue())
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
 		}
 	})
 }

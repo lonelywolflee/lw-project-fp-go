@@ -7,23 +7,8 @@ import (
 	"github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
-func TestFailure_GetError(t *testing.T) {
-	t.Run("returns the wrapped error", func(t *testing.T) {
-		err := errors.New("test error")
-		failure := maybe.Fail[int](err)
-		if failure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, failure.GetError())
-		}
-	})
-
-	t.Run("returns different error messages", func(t *testing.T) {
-		err := errors.New("another error")
-		failure := maybe.Fail[string](err)
-		if failure.GetError().Error() != "another error" {
-			t.Errorf("expected 'another error', got %s", failure.GetError().Error())
-		}
-	})
-}
+// TestFailure_GetError is removed - use TestFailure_Get instead
+// Get() is now the unified interface method for accessing errors
 
 func TestFailure_Get(t *testing.T) {
 	t.Run("returns zero value and error for int", func(t *testing.T) {
@@ -126,8 +111,9 @@ func TestFailure_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Map should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -148,8 +134,9 @@ func TestFailure_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Map should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -164,8 +151,9 @@ func TestFailure_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Map should return Failure type without executing function")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -178,8 +166,9 @@ func TestFailure_Map(t *testing.T) {
 		if !ok {
 			t.Fatal("chained Map should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 }
@@ -196,8 +185,9 @@ func TestFailure_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.FlatMap should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -218,8 +208,9 @@ func TestFailure_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.FlatMap should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -234,8 +225,9 @@ func TestFailure_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.FlatMap should return Failure type without executing function")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -248,8 +240,9 @@ func TestFailure_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("chained FlatMap should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -262,8 +255,9 @@ func TestFailure_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("mixed operations should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -281,8 +275,9 @@ func TestFailure_FlatMap(t *testing.T) {
 		if !ok {
 			t.Fatal("railway pattern should preserve Failure")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 }
@@ -297,8 +292,9 @@ func TestFailure_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Filter should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -319,8 +315,9 @@ func TestFailure_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Filter should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -335,8 +332,9 @@ func TestFailure_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Filter should return Failure type without executing predicate")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -350,8 +348,9 @@ func TestFailure_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("chained Filter and Map should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -364,8 +363,9 @@ func TestFailure_Filter(t *testing.T) {
 		if !ok {
 			t.Fatal("Filter should preserve Failure in railway pattern")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 }
@@ -380,8 +380,9 @@ func TestFailure_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Then should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -401,8 +402,9 @@ func TestFailure_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Then should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -417,8 +419,9 @@ func TestFailure_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Failure.Then should return Failure type without executing function")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -438,8 +441,9 @@ func TestFailure_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("chained Then and Map should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -460,8 +464,9 @@ func TestFailure_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("multiple Then calls should preserve Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -474,8 +479,9 @@ func TestFailure_Then(t *testing.T) {
 		if !ok {
 			t.Fatal("Then should preserve Failure in railway pattern")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 }
@@ -735,8 +741,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -759,8 +766,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -778,8 +786,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when failureFn panics")
 		}
-		if resultFailure.GetError().Error() != "failureFn panic" {
-			t.Errorf("expected panic message, got %s", resultFailure.GetError().Error())
+		_, gotErr := resultFailure.Get()
+		if gotErr.Error() != "failureFn panic" {
+			t.Errorf("expected panic message, got %s", gotErr.Error())
 		}
 	})
 
@@ -802,8 +811,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -827,8 +837,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("chained operations should return Failure")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -856,8 +867,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("chained MatchThen should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -874,8 +886,9 @@ func TestFailure_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure type")
 		}
-		if resultFailure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 }
@@ -891,8 +904,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Failure when already failed")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected original error %v, got %v", originalErr, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, gotErr)
 		}
 	})
 
@@ -906,10 +920,11 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Failure")
 		}
-		if resultFailure.GetError().Error() != "database error" {
-			t.Errorf("expected 'database error', got %s", resultFailure.GetError().Error())
+		_, gotErr := resultFailure.Get()
+		if gotErr.Error() != "database error" {
+			t.Errorf("expected 'database error', got %s", gotErr.Error())
 		}
-		if resultFailure.GetError() == newErr {
+		if gotErr == newErr {
 			t.Error("FailIfEmpty should not replace original error with new error")
 		}
 	})
@@ -928,8 +943,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Failure")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected original error %v, got %v", originalErr, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, gotErr)
 		}
 	})
 
@@ -944,8 +960,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("chain should preserve Failure")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected original error, got %v", resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected original error, got %v", gotErr)
 		}
 	})
 
@@ -961,8 +978,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("railway pattern should preserve first failure")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected first error, got %v", resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected first error, got %v", gotErr)
 		}
 	})
 
@@ -975,8 +993,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("FailIfEmpty should return Failure")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected original error, got %v", resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected original error, got %v", gotErr)
 		}
 	})
 
@@ -991,8 +1010,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("multiple FailIfEmpty calls should return Failure")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected first error, got %v", resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected first error, got %v", gotErr)
 		}
 	})
 
@@ -1030,8 +1050,9 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("result should be Failure")
 		}
-		if resultFailure.GetError() != originalErr {
-			t.Errorf("expected original error %v, got %v", originalErr, resultFailure.GetError())
+		_, gotErr := resultFailure.Get()
+		if gotErr != originalErr {
+			t.Errorf("expected original error %v, got %v", originalErr, gotErr)
 		}
 	})
 }

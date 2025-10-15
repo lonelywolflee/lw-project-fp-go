@@ -35,17 +35,6 @@ func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
 	return Fail[any](f.e)
 }
 
-// GetError returns the error wrapped in Failure.
-// This method provides direct access to the error without type assertion.
-//
-// Example:
-//
-//	failure := Fail[int](errors.New("something went wrong"))
-//	err := failure.GetError() // returns error directly (no type assertion needed)
-func (f Failure[T]) GetError() error {
-	return f.e
-}
-
 // Filter ignores the given function and returns Failure.
 // Since Failure represents an error state, no filtering is applied.
 // The error is preserved and wrapped in a new Failure.

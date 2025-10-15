@@ -16,7 +16,7 @@ type Some[T any] struct {
 //	result := some.Map(func(x int) any { return x * 2 }) // Just(10)
 func (s Some[T]) Map(fn func(T) any) (result Maybe[any]) {
 	return Do(func() Maybe[any] {
-		return Just(fn(s.GetValue()))
+		return Just(fn(s.v))
 	})
 }
 
@@ -35,20 +35,8 @@ func (s Some[T]) Map(fn func(T) any) (result Maybe[any]) {
 //	})
 func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
 	return Do(func() Maybe[any] {
-		return fn(s.GetValue())
+		return fn(s.v)
 	})
-}
-
-// GetValue returns the value wrapped in Some.
-// Unlike the Get() method from the Maybe interface, this returns the concrete type T
-// without requiring type assertion.
-//
-// Example:
-//
-//	some := Just(42)
-//	value := some.GetValue() // returns 42 as int (no type assertion needed)
-func (s Some[T]) GetValue() T {
-	return s.v
 }
 
 // Filter applies the given function to the value inside Some and returns a new Maybe.
@@ -61,7 +49,7 @@ func (s Some[T]) GetValue() T {
 //	result := some.Filter(func(x int) bool { return x > 0 }) // Just(5)
 func (s Some[T]) Filter(fn func(T) bool) Maybe[T] {
 	return Do(func() Maybe[T] {
-		if fn(s.GetValue()) {
+		if fn(s.v) {
 			return s
 		}
 		return Empty[T]()
@@ -77,7 +65,7 @@ func (s Some[T]) Filter(fn func(T) bool) Maybe[T] {
 //	result := some.Then(func(x int) { println(x) }) // Just(5)
 func (s Some[T]) Then(fn func(T)) Maybe[T] {
 	return Do(func() Maybe[T] {
-		fn(s.GetValue())
+		fn(s.v)
 		return s
 	})
 }
@@ -89,7 +77,7 @@ func (s Some[T]) Then(fn func(T)) Maybe[T] {
 //	some := Just(5)
 //	value := some.Get() // returns 5
 func (s Some[T]) Get() (T, error) {
-	return s.GetValue(), nil
+	return s.v, nil
 }
 
 // OrElseGet returns the value inside Some.
@@ -102,7 +90,7 @@ func (s Some[T]) Get() (T, error) {
 //	some := Just(5)
 //	result := some.OrElseGet(func(err error) int { return 10 }) // returns 5 (function not called)
 func (s Some[T]) OrElseGet(fn func(error) T) T {
-	return s.GetValue()
+	return s.v
 }
 
 // OrElseDefault returns the value inside Some.
@@ -113,7 +101,7 @@ func (s Some[T]) OrElseGet(fn func(error) T) T {
 //	some := Just(5)
 //	result := some.OrElseDefault(10) // returns 5 (not 10)
 func (s Some[T]) OrElseDefault(v T) T {
-	return s.GetValue()
+	return s.v
 }
 
 // FailIfEmpty returns the original Some unchanged since it contains a value.
@@ -140,7 +128,7 @@ func (s Some[T]) FailIfEmpty(err error) Maybe[T] {
 //	result := Fail[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
 	return Do(func() Maybe[T] {
-		someFn(s.GetValue())
+		someFn(s.v)
 		return s
 	})
 }

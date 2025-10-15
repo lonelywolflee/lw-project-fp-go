@@ -38,8 +38,9 @@ func main() {
         Map(func(x int) any { return x + 5 })
 
     // Extract the value
-    if some, ok := result.(maybe.Some[any]); ok {
-        fmt.Println(some.GetValue()) // Output: 25
+    value, err := result.Get()
+    if err == nil {
+        fmt.Println(value) // Output: 25
     }
 }
 ```
@@ -107,8 +108,9 @@ result := maybe.Just(10).
     })
 
 // result is a Failure containing the error
-if failure, ok := result.(maybe.Failure[any]); ok {
-    fmt.Println(failure.GetError()) // "value too large"
+_, err := result.Get()
+if err != nil {
+    fmt.Println(err) // "value too large"
 }
 ```
 
@@ -352,7 +354,6 @@ type Maybe[T any] interface {
 ```go
 type Some[T any] struct { /* ... */ }
 
-func (s Some[T]) GetValue() T
 func (s Some[T]) Map(fn func(T) any) Maybe[any]
 func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
@@ -383,7 +384,6 @@ func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error))
 ```go
 type Failure[T any] struct { /* ... */ }
 
-func (f Failure[T]) GetError() error
 func (f Failure[T]) Map(fn func(T) any) Maybe[any]
 func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any]
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
@@ -413,13 +413,16 @@ func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(erro
 
 ```go
 func handleResult(m maybe.Maybe[int]) string {
-    switch v := m.(type) {
+    value, err := m.Get()
+    if err != nil {
+        return fmt.Sprintf("Error: %s", err)
+    }
+
+    switch m.(type) {
     case maybe.Some[int]:
-        return fmt.Sprintf("Got value: %d", v.GetValue())
+        return fmt.Sprintf("Got value: %d", value)
     case maybe.None[int]:
         return "No value"
-    case maybe.Failure[int]:
-        return fmt.Sprintf("Error: %s", v.GetError())
     default:
         return "Unknown state"
     }

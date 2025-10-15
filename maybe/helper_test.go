@@ -17,8 +17,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Some type when no panic")
 		}
-		if some.GetValue() != 42 {
-			t.Errorf("expected 42, got %d", some.GetValue())
+		value, _ := some.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
 		}
 	})
 
@@ -43,8 +44,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Failure type when function returns Failure")
 		}
-		if failure.GetError() != err {
-			t.Errorf("expected %v, got %v", err, failure.GetError())
+		_, gotErr := failure.Get()
+		if gotErr != err {
+			t.Errorf("expected %v, got %v", err, gotErr)
 		}
 	})
 
@@ -57,8 +59,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Failure type when panic occurs")
 		}
-		if failure.GetError().Error() != "something went wrong" {
-			t.Errorf("expected 'something went wrong', got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "something went wrong" {
+			t.Errorf("expected 'something went wrong', got %s", err.Error())
 		}
 	})
 
@@ -72,8 +75,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Failure type when panic occurs")
 		}
-		if failure.GetError() != testErr {
-			t.Errorf("expected %v, got %v", testErr, failure.GetError())
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
 		}
 	})
 
@@ -86,8 +90,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Failure type when panic with integer occurs")
 		}
-		if failure.GetError().Error() != "123" {
-			t.Errorf("expected '123', got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "123" {
+			t.Errorf("expected '123', got %s", err.Error())
 		}
 	})
 
@@ -126,8 +131,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Some type")
 		}
-		if some.GetValue() != "hello" {
-			t.Errorf("expected 'hello', got %s", some.GetValue())
+		value, _ := some.Get()
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
 		}
 	})
 
@@ -143,8 +149,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Some type")
 		}
-		if some.GetValue() != 25 {
-			t.Errorf("expected 25, got %d", some.GetValue())
+		value, _ := some.Get()
+		if value != 25 {
+			t.Errorf("expected 25, got %d", value)
 		}
 	})
 
@@ -160,8 +167,9 @@ func TestDo(t *testing.T) {
 		if !ok {
 			t.Fatal("Do should return Failure type when nested panic occurs")
 		}
-		if failure.GetError().Error() != "nested panic" {
-			t.Errorf("expected 'nested panic', got %s", failure.GetError().Error())
+		_, err := failure.Get()
+		if err.Error() != "nested panic" {
+			t.Errorf("expected 'nested panic', got %s", err.Error())
 		}
 	})
 }
