@@ -8,33 +8,43 @@ type Some[T any] struct {
 }
 
 // Map applies the given function to the value inside Some and wraps the result in a new Maybe.
+// The function must return the same type T (for type conversion to other types, use the helper Map function).
 // If the function panics, the panic is caught and converted to a Failure.
 //
 // Example:
 //
 //	some := Just(5)
-//	result := some.Map(func(x int) any { return x * 2 }) // Just(10)
-func (s Some[T]) Map(fn func(T) any) (result Maybe[any]) {
-	return Do(func() Maybe[any] {
+//	result := some.Map(func(x int) int { return x * 2 }) // Just(10)
+//
+//	// For type conversion, use the helper function:
+//	result := Map(Just(42), strconv.Itoa) // Just("42")
+func (s Some[T]) Map(fn func(T) T) (result Maybe[T]) {
+	return Do(func() Maybe[T] {
 		return Just(fn(s.v))
 	})
 }
 
 // FlatMap applies the given function to the value inside Some.
-// Unlike Map, the function is expected to return a Maybe, which prevents nested Maybe structures.
+// Unlike Map, the function is expected to return a Maybe[T], which prevents nested Maybe structures.
+// The function must return Maybe[T] (for type conversion, use the helper FlatMap function).
 // If the function panics, the panic is caught and converted to a Failure.
 //
 // Example:
 //
 //	some := Just(5)
-//	result := some.FlatMap(func(x int) Maybe[any] {
+//	result := some.FlatMap(func(x int) Maybe[int] {
 //	    if x > 0 {
 //	        return Just(x * 2)
 //	    }
-//	    return Empty[any]()
+//	    return Empty[int]()
 //	})
-func (s Some[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
-	return Do(func() Maybe[any] {
+//
+//	// For type conversion, use the helper function:
+//	result := FlatMap(Just(42), func(x int) Maybe[string] {
+//	    return Just(strconv.Itoa(x))
+//	}) // Just("42")
+func (s Some[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T] {
+	return Do(func() Maybe[T] {
 		return fn(s.v)
 	})
 }

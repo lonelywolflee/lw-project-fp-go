@@ -7,6 +7,39 @@ import (
 	"github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
+// customMaybe is a test helper type that implements Maybe[int] interface
+// but is not actually Some, None, or Failure. This is used to test the
+// default case in helper functions Map and FlatMap.
+type customMaybe struct{}
+
+func (customMaybe) Map(fn func(int) int) maybe.Maybe[int] {
+	return maybe.Empty[int]()
+}
+func (customMaybe) FlatMap(fn func(int) maybe.Maybe[int]) maybe.Maybe[int] {
+	return maybe.Empty[int]()
+}
+func (customMaybe) Filter(fn func(int) bool) maybe.Maybe[int] {
+	return maybe.Empty[int]()
+}
+func (customMaybe) Then(fn func(int)) maybe.Maybe[int] {
+	return maybe.Empty[int]()
+}
+func (customMaybe) Get() (int, error) {
+	return 0, nil // Acts like None but isn't actually None type
+}
+func (customMaybe) OrElseGet(fn func(error) int) int {
+	return 0
+}
+func (customMaybe) OrElseDefault(v int) int {
+	return v
+}
+func (customMaybe) FailIfEmpty(fn func() error) maybe.Maybe[int] {
+	return maybe.Empty[int]()
+}
+func (customMaybe) MatchThen(someFn func(int), noneFn func(), failureFn func(error)) maybe.Maybe[int] {
+	return maybe.Empty[int]()
+}
+
 func TestDo(t *testing.T) {
 	t.Run("returns result when no panic occurs", func(t *testing.T) {
 		result := maybe.Do(func() maybe.Maybe[int] {
@@ -170,6 +203,321 @@ func TestDo(t *testing.T) {
 		_, err := failure.Get()
 		if err.Error() != "nested panic" {
 			t.Errorf("expected 'nested panic', got %s", err.Error())
+		}
+	})
+}
+
+func TestMap(t *testing.T) {
+	t.Run("transforms Some value to different type", func(t *testing.T) {
+		// int to string
+		result := maybe.Map(maybe.Just(42), func(x int) string {
+			return "value: " + string(rune(x))
+		})
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("Map should return Some[string]")
+		}
+		value, _ := some.Get()
+		if value != "value: *" {
+			t.Errorf("expected 'value: *', got %s", value)
+		}
+	})
+
+	t.Run("transforms None to different type", func(t *testing.T) {
+		result := maybe.Map(maybe.Empty[int](), func(x int) string {
+			return "value"
+		})
+
+		_, ok := result.(maybe.None[string])
+		if !ok {
+			t.Fatal("Map should return None[string] for None[int]")
+		}
+	})
+
+	t.Run("propagates Failure to different type", func(t *testing.T) {
+		originalErr := errors.New("original error")
+		result := maybe.Map(maybe.Fail[int](originalErr), func(x int) string {
+			return "value"
+		})
+
+		failure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("Map should return Failure[string] for Failure[int]")
+		}
+		_, err := failure.Get()
+		if err != originalErr {
+			t.Errorf("expected original error, got %v", err)
+		}
+	})
+
+	t.Run("catches panic and converts to Failure", func(t *testing.T) {
+		result := maybe.Map(maybe.Just(42), func(x int) string {
+			panic("panic in map function")
+		})
+
+		failure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("Map should return Failure when function panics")
+		}
+		_, err := failure.Get()
+		if err.Error() != "panic in map function" {
+			t.Errorf("expected 'panic in map function', got %s", err.Error())
+		}
+	})
+
+	t.Run("converts int to string using strconv", func(t *testing.T) {
+		result := maybe.Map(maybe.Just(123), func(x int) string {
+			return string(rune(x + '0'))
+		})
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("Map should return Some[string]")
+		}
+		value, _ := some.Get()
+		if len(value) == 0 {
+			t.Error("expected non-empty string")
+		}
+	})
+
+	t.Run("converts string to int length", func(t *testing.T) {
+		result := maybe.Map(maybe.Just("hello"), func(s string) int {
+			return len(s)
+		})
+
+		some, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("Map should return Some[int]")
+		}
+		value, _ := some.Get()
+		if value != 5 {
+			t.Errorf("expected 5, got %d", value)
+		}
+	})
+
+	t.Run("can be chained with method calls", func(t *testing.T) {
+		result := maybe.Map(
+			maybe.Just(10).Filter(func(x int) bool { return x > 5 }),
+			func(x int) string { return "passed" },
+		)
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("Map should return Some[string]")
+		}
+		value, _ := some.Get()
+		if value != "passed" {
+			t.Errorf("expected 'passed', got %s", value)
+		}
+	})
+
+	t.Run("handles zero values correctly", func(t *testing.T) {
+		result := maybe.Map(maybe.Just(0), func(x int) bool {
+			return x == 0
+		})
+
+		some, ok := result.(maybe.Some[bool])
+		if !ok {
+			t.Fatal("Map should return Some[bool]")
+		}
+		value, _ := some.Get()
+		if !value {
+			t.Error("expected true")
+		}
+	})
+
+	t.Run("handles unknown Maybe implementation (default case)", func(t *testing.T) {
+		// Use the custom Maybe implementation to test the default case
+		custom := customMaybe{}
+		result := maybe.Map(custom, func(x int) string {
+			return "should not reach"
+		})
+
+		// Should return Empty[string]() due to default case
+		_, ok := result.(maybe.None[string])
+		if !ok {
+			t.Fatal("Map should return None[string] for unknown Maybe implementation")
+		}
+	})
+}
+
+func TestFlatMap(t *testing.T) {
+	t.Run("transforms Some value to different type with Maybe", func(t *testing.T) {
+		result := maybe.FlatMap(maybe.Just(42), func(x int) maybe.Maybe[string] {
+			if x > 0 {
+				return maybe.Just("positive")
+			}
+			return maybe.Empty[string]()
+		})
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("FlatMap should return Some[string]")
+		}
+		value, _ := some.Get()
+		if value != "positive" {
+			t.Errorf("expected 'positive', got %s", value)
+		}
+	})
+
+	t.Run("transforms Some to None based on condition", func(t *testing.T) {
+		result := maybe.FlatMap(maybe.Just(-5), func(x int) maybe.Maybe[string] {
+			if x > 0 {
+				return maybe.Just("positive")
+			}
+			return maybe.Empty[string]()
+		})
+
+		_, ok := result.(maybe.None[string])
+		if !ok {
+			t.Fatal("FlatMap should return None[string] when function returns Empty")
+		}
+	})
+
+	t.Run("transforms None to different type", func(t *testing.T) {
+		result := maybe.FlatMap(maybe.Empty[int](), func(x int) maybe.Maybe[string] {
+			return maybe.Just("value")
+		})
+
+		_, ok := result.(maybe.None[string])
+		if !ok {
+			t.Fatal("FlatMap should return None[string] for None[int]")
+		}
+	})
+
+	t.Run("propagates Failure to different type", func(t *testing.T) {
+		originalErr := errors.New("original error")
+		result := maybe.FlatMap(maybe.Fail[int](originalErr), func(x int) maybe.Maybe[string] {
+			return maybe.Just("value")
+		})
+
+		failure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("FlatMap should return Failure[string] for Failure[int]")
+		}
+		_, err := failure.Get()
+		if err != originalErr {
+			t.Errorf("expected original error, got %v", err)
+		}
+	})
+
+	t.Run("catches panic and converts to Failure", func(t *testing.T) {
+		result := maybe.FlatMap(maybe.Just(42), func(x int) maybe.Maybe[string] {
+			panic("panic in flatmap function")
+		})
+
+		failure, ok := result.(maybe.Failure[string])
+		if !ok {
+			t.Fatal("FlatMap should return Failure when function panics")
+		}
+		_, err := failure.Get()
+		if err.Error() != "panic in flatmap function" {
+			t.Errorf("expected 'panic in flatmap function', got %s", err.Error())
+		}
+	})
+
+	t.Run("transforms to Failure based on validation", func(t *testing.T) {
+		result := maybe.FlatMap(maybe.Just("invalid"), func(s string) maybe.Maybe[int] {
+			if s == "valid" {
+				return maybe.Just(100)
+			}
+			return maybe.Fail[int](errors.New("validation failed"))
+		})
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("FlatMap should return Failure when validation fails")
+		}
+		_, err := failure.Get()
+		if err.Error() != "validation failed" {
+			t.Errorf("expected 'validation failed', got %s", err.Error())
+		}
+	})
+
+	t.Run("can chain multiple transformations", func(t *testing.T) {
+		// First transformation: string to int length
+		step1 := maybe.FlatMap(maybe.Just("hello"), func(s string) maybe.Maybe[int] {
+			return maybe.Just(len(s))
+		})
+
+		// Second transformation: int to bool
+		step2 := maybe.FlatMap(step1, func(x int) maybe.Maybe[bool] {
+			return maybe.Just(x > 3)
+		})
+
+		some, ok := step2.(maybe.Some[bool])
+		if !ok {
+			t.Fatal("FlatMap should return Some[bool]")
+		}
+		value, _ := some.Get()
+		if !value {
+			t.Error("expected true")
+		}
+	})
+
+	t.Run("flattens nested Maybe structures", func(t *testing.T) {
+		// Without FlatMap, this would be Maybe[Maybe[string]]
+		result := maybe.FlatMap(maybe.Just(5), func(x int) maybe.Maybe[string] {
+			if x > 0 {
+				return maybe.Just("value")
+			}
+			return maybe.Empty[string]()
+		})
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("FlatMap should flatten and return Some[string], not Maybe[Maybe[string]]")
+		}
+		value, _ := some.Get()
+		if value != "value" {
+			t.Errorf("expected 'value', got %s", value)
+		}
+	})
+
+	t.Run("can be chained with Filter", func(t *testing.T) {
+		result := maybe.FlatMap(
+			maybe.Just(10).Filter(func(x int) bool { return x > 5 }),
+			func(x int) maybe.Maybe[string] {
+				return maybe.Just("valid")
+			},
+		)
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("FlatMap should return Some[string]")
+		}
+		value, _ := some.Get()
+		if value != "valid" {
+			t.Errorf("expected 'valid', got %s", value)
+		}
+	})
+
+	t.Run("handles Filter returning None", func(t *testing.T) {
+		result := maybe.FlatMap(
+			maybe.Just(3).Filter(func(x int) bool { return x > 5 }),
+			func(x int) maybe.Maybe[string] {
+				return maybe.Just("valid")
+			},
+		)
+
+		_, ok := result.(maybe.None[string])
+		if !ok {
+			t.Fatal("FlatMap should return None[string] when Filter returns None")
+		}
+	})
+
+	t.Run("handles unknown Maybe implementation (default case)", func(t *testing.T) {
+		// Use the custom Maybe implementation to test the default case
+		custom := customMaybe{}
+		result := maybe.FlatMap(custom, func(x int) maybe.Maybe[string] {
+			return maybe.Just("should not reach")
+		})
+
+		// Should return Empty[string]() due to default case
+		_, ok := result.(maybe.None[string])
+		if !ok {
+			t.Fatal("FlatMap should return None[string] for unknown Maybe implementation")
 		}
 	})
 }

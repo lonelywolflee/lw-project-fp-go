@@ -7,28 +7,30 @@ package maybe
 type None[T any] struct {
 }
 
-// Map ignores the given function and returns Empty.
+// Map ignores the given function and returns None.
 // Since None has no value, there's nothing to transform.
+// The type is preserved, returning None[T].
 //
 // Example:
 //
 //	none := Empty[int]()
-//	result := none.Map(func(x int) any { return x * 2 }) // Empty[any]()
-func (n None[T]) Map(fn func(T) any) Maybe[any] {
-	return Empty[any]()
+//	result := none.Map(func(x int) int { return x * 2 }) // Empty[int]()
+func (n None[T]) Map(fn func(T) T) Maybe[T] {
+	return n
 }
 
-// FlatMap ignores the given function and returns Empty.
+// FlatMap ignores the given function and returns None.
 // Since None has no value, there's nothing to transform.
+// The type is preserved, returning None[T].
 //
 // Example:
 //
 //	none := Empty[int]()
-//	result := none.FlatMap(func(x int) Maybe[any] {
+//	result := none.FlatMap(func(x int) Maybe[int] {
 //	    return Just(x * 2)
-//	}) // Empty[any]()
-func (n None[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
-	return Empty[any]()
+//	}) // Empty[int]()
+func (n None[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T] {
+	return n
 }
 
 // Filter ignores the given function and returns None.

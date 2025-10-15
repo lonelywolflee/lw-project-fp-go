@@ -11,28 +11,28 @@ type Failure[T any] struct {
 
 // Map ignores the given function and propagates the error.
 // Since Failure represents an error state, no transformation is applied.
-// The error is preserved and wrapped in a new Failure.
+// The error is preserved, and the type is kept as Failure[T].
 //
 // Example:
 //
 //	failure := Fail[int](errors.New("failed"))
-//	result := failure.Map(func(x int) any { return x * 2 }) // Fail[any](error)
-func (f Failure[T]) Map(fn func(T) any) Maybe[any] {
-	return Fail[any](f.e)
+//	result := failure.Map(func(x int) int { return x * 2 }) // Fail[int](error)
+func (f Failure[T]) Map(fn func(T) T) Maybe[T] {
+	return f
 }
 
 // FlatMap ignores the given function and propagates the error.
 // Since Failure represents an error state, no transformation is applied.
-// The error is preserved and wrapped in a new Failure.
+// The error is preserved, and the type is kept as Failure[T].
 //
 // Example:
 //
 //	failure := Fail[int](errors.New("failed"))
-//	result := failure.FlatMap(func(x int) Maybe[any] {
+//	result := failure.FlatMap(func(x int) Maybe[int] {
 //	    return Just(x * 2)
-//	}) // Fail[any](error)
-func (f Failure[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
-	return Fail[any](f.e)
+//	}) // Fail[int](error)
+func (f Failure[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T] {
+	return f
 }
 
 // Filter ignores the given function and returns Failure.

@@ -71,9 +71,9 @@ func TestNone_Get(t *testing.T) {
 func TestNone_Map(t *testing.T) {
 	t.Run("returns Empty and ignores function", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		result := none.Map(func(x int) any { return x * 2 })
+		result := none.Map(func(x int) int { return x * 2 })
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("None.Map should return None type")
 		}
@@ -82,7 +82,7 @@ func TestNone_Map(t *testing.T) {
 	t.Run("does not execute the function", func(t *testing.T) {
 		none := maybe.Empty[int]()
 		executed := false
-		result := none.Map(func(x int) any {
+		result := none.Map(func(x int) int {
 			executed = true
 			return x * 2
 		})
@@ -91,7 +91,7 @@ func TestNone_Map(t *testing.T) {
 			t.Error("None.Map should not execute the function")
 		}
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("None.Map should return None type")
 		}
@@ -99,11 +99,11 @@ func TestNone_Map(t *testing.T) {
 
 	t.Run("function can panic but never called", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		result := none.Map(func(x int) any {
+		result := none.Map(func(x int) int {
 			panic("this should never be called")
 		})
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("None.Map should return None type without executing function")
 		}
@@ -113,11 +113,11 @@ func TestNone_Map(t *testing.T) {
 func TestNone_FlatMap(t *testing.T) {
 	t.Run("returns Empty and ignores function", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		result := none.FlatMap(func(x int) maybe.Maybe[any] {
-			return maybe.Just[any](x * 2)
+		result := none.FlatMap(func(x int) maybe.Maybe[int] {
+			return maybe.Just(x * 2)
 		})
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("None.FlatMap should return None type")
 		}
@@ -126,16 +126,16 @@ func TestNone_FlatMap(t *testing.T) {
 	t.Run("does not execute the function", func(t *testing.T) {
 		none := maybe.Empty[int]()
 		executed := false
-		result := none.FlatMap(func(x int) maybe.Maybe[any] {
+		result := none.FlatMap(func(x int) maybe.Maybe[int] {
 			executed = true
-			return maybe.Just[any](x * 2)
+			return maybe.Just(x * 2)
 		})
 
 		if executed {
 			t.Error("None.FlatMap should not execute the function")
 		}
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("None.FlatMap should return None type")
 		}
@@ -143,11 +143,11 @@ func TestNone_FlatMap(t *testing.T) {
 
 	t.Run("function can panic but never called", func(t *testing.T) {
 		none := maybe.Empty[string]()
-		result := none.FlatMap(func(x string) maybe.Maybe[any] {
+		result := none.FlatMap(func(x string) maybe.Maybe[string] {
 			panic("this should never be called")
 		})
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[string])
 		if !ok {
 			t.Fatal("None.FlatMap should return None type without executing function")
 		}
@@ -155,9 +155,9 @@ func TestNone_FlatMap(t *testing.T) {
 
 	t.Run("chains with Map operation", func(t *testing.T) {
 		result := maybe.Empty[int]().
-			Map(func(x int) any { return x * 2 })
+			Map(func(x int) int { return x * 2 })
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("chained operations on None should return None type")
 		}
@@ -208,9 +208,9 @@ func TestNone_Filter(t *testing.T) {
 	t.Run("can be chained with Map", func(t *testing.T) {
 		result := maybe.Empty[int]().
 			Filter(func(x int) bool { return x > 5 }).
-			Map(func(x int) any { return x * 2 })
+			Map(func(x int) int { return x * 2 })
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("chained Filter and Map on None should return None type")
 		}
@@ -272,13 +272,13 @@ func TestNone_Then(t *testing.T) {
 
 		result := maybe.Empty[int]().
 			Then(func(x int) { sideEffect = x }).
-			Map(func(x int) any { return x * 2 })
+			Map(func(x int) int { return x * 2 })
 
 		if sideEffect != 0 {
 			t.Errorf("side effect should not be triggered, got %d", sideEffect)
 		}
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("chained Then and Map on None should return None type")
 		}
@@ -579,13 +579,13 @@ func TestNone_MatchThen(t *testing.T) {
 				func() { sideEffect = "Processing None" },
 				func(err error) { sideEffect = "error" },
 			).
-			Map(func(x int) any { return x * 2 })
+			Map(func(x int) int { return x * 2 })
 
 		if sideEffect != "Processing None" {
 			t.Errorf("expected 'Processing None', got %s", sideEffect)
 		}
 
-		_, ok := result.(maybe.None[any])
+		_, ok := result.(maybe.None[int])
 		if !ok {
 			t.Fatal("chained operations should return None")
 		}
@@ -704,9 +704,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 	t.Run("can be used in validation chains", func(t *testing.T) {
 		result := maybe.Empty[int]().
 			FailIfEmpty(func() error { return errors.New("value is empty") }).
-			Map(func(x int) any { return x * 2 })
+			Map(func(x int) int { return x * 2 })
 
-		failure, ok := result.(maybe.Failure[any])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("chain should return Failure when None is converted to Failure")
 		}
@@ -721,9 +721,9 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		result := maybe.Empty[int]().
 			FailIfEmpty(func() error { return originalErr }).
 			Filter(func(x int) bool { return x > 0 }).
-			Map(func(x int) any { return x * 2 })
+			Map(func(x int) int { return x * 2 })
 
-		failure, ok := result.(maybe.Failure[any])
+		failure, ok := result.(maybe.Failure[int])
 		if !ok {
 			t.Fatal("error should propagate through chain")
 		}

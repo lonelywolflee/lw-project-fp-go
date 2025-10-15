@@ -8,22 +8,56 @@ package maybe
 //   - None[T]: represents an absent value
 //   - Failure[T]: represents an error state
 //
-// Example usage:
+// Design Note: Due to Go's type system constraints, methods Map and FlatMap operate on the same type T.
+// For type conversions (T → R), use the helper functions: maybe.Map[T, R]() and maybe.FlatMap[T, R]()
+//
+// Example usage (same-type transformations):
 //
 //	result := Just(10).
-//	    Map(func(x int) any { return x * 2 }).
-//	    FlatMap(func(x int) Maybe[any] { return Just(x + 5) })
+//	    Map(func(x int) int { return x * 2 }).        // 10 → 20
+//	    Filter(func(x int) bool { return x > 15 }).   // keeps 20
+//	    Map(func(x int) int { return x + 5 })         // 20 → 25
+//
+// Example usage (type conversions with helper functions):
+//
+//	import "strconv"
+//	result := Map(Just(42), strconv.Itoa)  // int → string: Just("42")
 type Maybe[T any] interface {
 	// Map transforms the value inside Maybe using the provided function.
-	// If Maybe is None or Failure, the transformation is skipped and the state is preserved.
-	// If the function panics, it's caught and converted to a Failure.
-	Map(fn func(T) any) Maybe[any]
+	// The function must return the same type T.
+	// For type conversion to a different type R, use the helper function: maybe.Map[T, R](m, fn)
+	//
+	// Behavior:
+	//   - If Maybe is Some, applies the function and returns a new Some with the result
+	//   - If Maybe is None, returns None (function not called)
+	//   - If Maybe is Failure, returns Failure with same error (function not called)
+	//   - If the function panics, it's caught and converted to a Failure
+	//
+	// Example:
+	//
+	//	result := Just(10).Map(func(x int) int { return x * 2 })  // Just(20)
+	Map(fn func(T) T) Maybe[T]
 
-	// FlatMap is similar to Map but expects the function to return a Maybe.
-	// This is useful for chaining operations that might fail.
-	// If Maybe is None or Failure, the transformation is skipped and the state is preserved.
-	// If the function panics, it's caught and converted to a Failure.
-	FlatMap(fn func(T) Maybe[any]) Maybe[any]
+	// FlatMap is similar to Map but expects the function to return a Maybe[T].
+	// This prevents nested Maybe structures and is useful for chaining operations that might fail.
+	// The function must return Maybe[T] (same type).
+	// For type conversion to Maybe[R], use the helper function: maybe.FlatMap[T, R](m, fn)
+	//
+	// Behavior:
+	//   - If Maybe is Some, applies the function and returns the resulting Maybe[T]
+	//   - If Maybe is None, returns None (function not called)
+	//   - If Maybe is Failure, returns Failure with same error (function not called)
+	//   - If the function panics, it's caught and converted to a Failure
+	//
+	// Example:
+	//
+	//	result := Just(5).FlatMap(func(x int) Maybe[int] {
+	//	    if x > 0 {
+	//	        return Just(x * 2)
+	//	    }
+	//	    return Empty[int]()
+	//	})  // Just(10)
+	FlatMap(fn func(T) Maybe[T]) Maybe[T]
 
 	// Filter applies a predicate function to the value inside Maybe.
 	// If the predicate returns true, the Maybe is unchanged.
