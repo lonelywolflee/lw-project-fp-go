@@ -28,17 +28,17 @@ package main
 
 import (
     "fmt"
-    "github.com/lonelywolflee/lw-project-fp-go"
+    "github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
 func main() {
     // Create a Maybe with a value
-    result := lwfp.Just(10).
+    result := maybe.Just(10).
         Map(func(x int) any { return x * 2 }).
         Map(func(x int) any { return x + 5 })
 
     // Extract the value
-    if some, ok := result.(lwfp.Some[any]); ok {
+    if some, ok := result.(maybe.Some[any]); ok {
         fmt.Println(some.GetValue()) // Output: 25
     }
 }
@@ -60,13 +60,13 @@ The `Maybe[T]` type represents an optional value with three possible states:
 
 ```go
 // Create a Some (value present)
-value := lwfp.Just(42)
+value := maybe.Just(42)
 
 // Create a None (no value)
-empty := lwfp.Empty[int]()
+empty := maybe.Empty[int]()
 
 // Create a Failure (error state)
-failed := lwfp.Fail[int](errors.New("something went wrong"))
+failed := maybe.Fail[int](errors.New("something went wrong"))
 ```
 
 ## Usage Examples
@@ -75,7 +75,7 @@ failed := lwfp.Fail[int](errors.New("something went wrong"))
 
 ```go
 // Map transforms the value inside Maybe
-result := lwfp.Just(5).
+result := maybe.Just(5).
     Map(func(x int) any { return x * 2 })
 
 // result contains Some(10)
@@ -85,12 +85,12 @@ result := lwfp.Just(5).
 
 ```go
 // FlatMap prevents nested Maybe structures
-result := lwfp.Just(5).
-    FlatMap(func(x int) lwfp.Maybe[any] {
+result := maybe.Just(5).
+    FlatMap(func(x int) maybe.Maybe[any] {
         if x > 0 {
-            return lwfp.Just[any](x * 2)
+            return maybe.Just[any](x * 2)
         }
-        return lwfp.Empty[any]()
+        return maybe.Empty[any]()
     })
 ```
 
@@ -98,7 +98,7 @@ result := lwfp.Just(5).
 
 ```go
 // Automatic panic recovery
-result := lwfp.Just(10).
+result := maybe.Just(10).
     Map(func(x int) any {
         if x > 5 {
             panic("value too large")
@@ -107,7 +107,7 @@ result := lwfp.Just(10).
     })
 
 // result is a Failure containing the error
-if failure, ok := result.(lwfp.Failure[any]); ok {
+if failure, ok := result.(maybe.Failure[any]); ok {
     fmt.Println(failure.GetError()) // "value too large"
 }
 ```
@@ -115,14 +115,14 @@ if failure, ok := result.(lwfp.Failure[any]); ok {
 ### Railway-Oriented Programming
 
 ```go
-func validateAge(age int) lwfp.Maybe[any] {
+func validateAge(age int) maybe.Maybe[any] {
     if age < 0 {
-        return lwfp.Fail[any](errors.New("age cannot be negative"))
+        return maybe.Fail[any](errors.New("age cannot be negative"))
     }
     if age > 150 {
-        return lwfp.Fail[any](errors.New("age too high"))
+        return maybe.Fail[any](errors.New("age too high"))
     }
-    return lwfp.Just[any](age)
+    return maybe.Just[any](age)
 }
 
 result := validateAge(25).
@@ -137,16 +137,16 @@ result := validateAge(25).
 
 ```go
 // Filter keeps values that satisfy a predicate
-result := lwfp.Just(10).
+result := maybe.Just(10).
     Filter(func(x int) bool { return x > 5 })
 // result contains Some(10)
 
-result := lwfp.Just(3).
+result := maybe.Just(3).
     Filter(func(x int) bool { return x > 5 })
 // result contains None
 
 // Filter can be chained with other operations
-result := lwfp.Just(10).
+result := maybe.Just(10).
     Filter(func(x int) bool { return x > 5 }).
     Map(func(x int) any { return x * 2 })
 // result contains Some(20)
@@ -156,13 +156,13 @@ result := lwfp.Just(10).
 
 ```go
 // Then executes a function for side effects without changing the value
-result := lwfp.Just(10).
+result := maybe.Just(10).
     Then(func(x int) { fmt.Printf("Processing: %d\n", x) }).
     Map(func(x int) any { return x * 2 })
 // Prints "Processing: 10", result contains Some(20)
 
 // Useful for logging in processing pipelines
-result := lwfp.Just("data").
+result := maybe.Just("data").
     Then(func(x string) { log.Info("Received", x) }).
     Filter(func(x string) bool { return len(x) > 0 }).
     Then(func(x string) { log.Info("Validated", x) }).
@@ -173,10 +173,10 @@ result := lwfp.Just("data").
 
 ```go
 // Do catches panics and converts them to Failures
-result := lwfp.Do(func() lwfp.Maybe[int] {
+result := maybe.Do(func() maybe.Maybe[int] {
     // Risky operation that might panic
     value := riskyOperation()
-    return lwfp.Just(value)
+    return maybe.Just(value)
 })
 ```
 
@@ -184,25 +184,25 @@ result := lwfp.Do(func() lwfp.Maybe[int] {
 
 ```go
 // OrElseGet provides a computed default value
-value := lwfp.Just(42).OrElseGet(func() int { return 0 })
+value := maybe.Just(42).OrElseGet(func() int { return 0 })
 // Returns: 42 (the actual value)
 
-value := lwfp.Empty[int]().OrElseGet(func() int { return 0 })
+value := maybe.Empty[int]().OrElseGet(func() int { return 0 })
 // Returns: 0 (computed default)
 
-value := lwfp.Fail[int](err).OrElseGet(func() int {
+value := maybe.Fail[int](err).OrElseGet(func() int {
     return computeDefault()
 })
 // Returns: result of computeDefault()
 
 // OrElseDefault provides a constant default value
-value := lwfp.Just(42).OrElseDefault(0)
+value := maybe.Just(42).OrElseDefault(0)
 // Returns: 42 (the actual value)
 
-value := lwfp.Empty[int]().OrElseDefault(0)
+value := maybe.Empty[int]().OrElseDefault(0)
 // Returns: 0 (constant default)
 
-value := lwfp.Fail[int](err).OrElseDefault(0)
+value := maybe.Fail[int](err).OrElseDefault(0)
 // Returns: 0 (constant default)
 
 // Practical example: config with fallback
@@ -315,9 +315,9 @@ func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(erro
 
 | Function | Description |
 |----------|-------------|
-| `Just[T](v T) Maybe[T]` | Creates a Maybe containing a value |
-| `Empty[T]() Maybe[T]` | Creates an empty Maybe (None) |
-| `Fail[T](e error) Maybe[T]` | Creates a Maybe containing an error |
+| `Just[T](v T) Some[T]` | Creates a Some containing a value |
+| `Empty[T]() None[T]` | Creates an empty None |
+| `Fail[T](e error) Failure[T]` | Creates a Failure containing an error |
 
 ### Helper Functions
 
@@ -328,13 +328,13 @@ func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(erro
 ## Pattern Matching Example
 
 ```go
-func handleResult(m lwfp.Maybe[int]) string {
+func handleResult(m maybe.Maybe[int]) string {
     switch v := m.(type) {
-    case lwfp.Some[int]:
+    case maybe.Some[int]:
         return fmt.Sprintf("Got value: %d", v.GetValue())
-    case lwfp.None[int]:
+    case maybe.None[int]:
         return "No value"
-    case lwfp.Failure[int]:
+    case maybe.Failure[int]:
         return fmt.Sprintf("Error: %s", v.GetError())
     default:
         return "Unknown state"
@@ -348,13 +348,13 @@ Run tests with coverage:
 
 ```bash
 # Run all tests
-go test -v
+go test -v ./...
 
 # Run with coverage
-go test -cover
+go test -cover ./...
 
 # Generate coverage report
-go test -coverprofile=coverage.out
+go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
 
@@ -372,12 +372,12 @@ cd lw-project-fp-go
 
 2. Run tests
 ```bash
-go test -v
+go test -v ./...
 ```
 
 3. Check coverage
 ```bash
-go test -cover
+go test -cover ./...
 ```
 
 ## License
