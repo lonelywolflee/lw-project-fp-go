@@ -48,6 +48,19 @@ type Maybe[T any] interface {
 	//	result := Empty[int]().Then(func(x int) { fmt.Println(x) }) // Empty[int](), nothing printed
 	Then(fn func(T)) Maybe[T]
 
+	// Get returns the value and error from Maybe.
+	// For Some: returns (value, nil)
+	// For None: returns (zero value, nil)
+	// For Failure: returns (zero value, error)
+	// This provides a Go-idiomatic way to extract values with error handling.
+	//
+	// Example:
+	//
+	//	value, err := Just(42).Get()     // value = 42, err = nil
+	//	value, err := Empty[int]().Get() // value = 0, err = nil
+	//	value, err := Fail[int](someErr).Get() // value = 0, err = someErr
+	Get() (T, error)
+
 	// OrElseGet returns the value inside Maybe if it exists (Some case),
 	// otherwise calls the provided function and returns its result (None or Failure case).
 	// This is useful for providing a computed default value when Maybe is empty or failed.

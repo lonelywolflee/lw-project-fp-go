@@ -24,6 +24,74 @@ func TestSome_GetValue(t *testing.T) {
 	})
 }
 
+func TestSome_Get(t *testing.T) {
+	t.Run("returns value and nil error", func(t *testing.T) {
+		some := maybe.Just(42)
+		value, err := some.Get()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+
+	t.Run("returns string value and nil error", func(t *testing.T) {
+		some := maybe.Just("hello")
+		value, err := some.Get()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
+		}
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		some := maybe.Just(0)
+		value, err := some.Get()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != 0 {
+			t.Errorf("expected 0, got %d", value)
+		}
+	})
+
+	t.Run("works with complex types", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		user := User{Name: "Alice", Age: 30}
+		some := maybe.Just(user)
+		value, err := some.Get()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value.Name != "Alice" || value.Age != 30 {
+			t.Errorf("expected User{Alice, 30}, got %+v", value)
+		}
+	})
+
+	t.Run("works with pointers", func(t *testing.T) {
+		num := 42
+		some := maybe.Just(&num)
+		value, err := some.Get()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value == nil || *value != 42 {
+			t.Errorf("expected pointer to 42, got %v", value)
+		}
+	})
+}
+
 func TestSome_Map(t *testing.T) {
 	t.Run("transforms value successfully", func(t *testing.T) {
 		some := maybe.Just(5)

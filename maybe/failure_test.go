@@ -25,6 +25,97 @@ func TestFailure_GetError(t *testing.T) {
 	})
 }
 
+func TestFailure_Get(t *testing.T) {
+	t.Run("returns zero value and error for int", func(t *testing.T) {
+		err := errors.New("test error")
+		failure := maybe.Fail[int](err)
+		value, returnedErr := failure.Get()
+
+		if returnedErr != err {
+			t.Errorf("expected error %v, got %v", err, returnedErr)
+		}
+		if value != 0 {
+			t.Errorf("expected zero value (0), got %d", value)
+		}
+	})
+
+	t.Run("returns zero value and error for string", func(t *testing.T) {
+		err := errors.New("database error")
+		failure := maybe.Fail[string](err)
+		value, returnedErr := failure.Get()
+
+		if returnedErr != err {
+			t.Errorf("expected error %v, got %v", err, returnedErr)
+		}
+		if value != "" {
+			t.Errorf("expected zero value (empty string), got %s", value)
+		}
+	})
+
+	t.Run("returns zero value and error for bool", func(t *testing.T) {
+		err := errors.New("validation error")
+		failure := maybe.Fail[bool](err)
+		value, returnedErr := failure.Get()
+
+		if returnedErr != err {
+			t.Errorf("expected error %v, got %v", err, returnedErr)
+		}
+		if value != false {
+			t.Errorf("expected zero value (false), got %v", value)
+		}
+	})
+
+	t.Run("returns nil pointer and error for pointer type", func(t *testing.T) {
+		err := errors.New("not found")
+		failure := maybe.Fail[*int](err)
+		value, returnedErr := failure.Get()
+
+		if returnedErr != err {
+			t.Errorf("expected error %v, got %v", err, returnedErr)
+		}
+		if value != nil {
+			t.Errorf("expected nil pointer, got %v", value)
+		}
+	})
+
+	t.Run("returns zero value struct and error", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		err := errors.New("user not found")
+		failure := maybe.Fail[User](err)
+		value, returnedErr := failure.Get()
+
+		if returnedErr != err {
+			t.Errorf("expected error %v, got %v", err, returnedErr)
+		}
+		if value.Name != "" || value.Age != 0 {
+			t.Errorf("expected zero value User{}, got %+v", value)
+		}
+	})
+
+	t.Run("preserves different error types", func(t *testing.T) {
+		type CustomError struct {
+			Code    int
+			Message string
+		}
+
+		// Implement error interface
+		errImpl := func(ce CustomError) error {
+			return errors.New(ce.Message)
+		}
+
+		customErr := errImpl(CustomError{Code: 404, Message: "Not Found"})
+		failure := maybe.Fail[int](customErr)
+		_, returnedErr := failure.Get()
+
+		if returnedErr != customErr {
+			t.Errorf("expected custom error %v, got %v", customErr, returnedErr)
+		}
+	})
+}
+
 func TestFailure_Map(t *testing.T) {
 	t.Run("propagates error and ignores function", func(t *testing.T) {
 		err := errors.New("original error")

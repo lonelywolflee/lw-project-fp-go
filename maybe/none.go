@@ -31,16 +31,6 @@ func (n None[T]) FlatMap(fn func(T) Maybe[any]) Maybe[any] {
 	return Empty[any]()
 }
 
-// Get returns nil, indicating the absence of a value.
-//
-// Example:
-//
-//	none := Empty[int]()
-//	value := none.Get() // returns nil
-func (n None[T]) Get() any {
-	return nil
-}
-
 // Filter ignores the given function and returns None.
 // Since None has no value, there's nothing to filter.
 //
@@ -61,6 +51,17 @@ func (n None[T]) Filter(fn func(T) bool) Maybe[T] {
 //	result := none.Then(func(x int) { println(x) }) // Empty[int]()
 func (n None[T]) Then(fn func(T)) Maybe[T] {
 	return n
+}
+
+// Get returns nil, indicating the absence of a value.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	value := none.Get() // returns nil
+func (n None[T]) Get() (T, error) {
+	var zero T
+	return zero, nil
 }
 
 // OrElseGet calls the provided function and returns its result.

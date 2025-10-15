@@ -70,6 +70,18 @@ func (f Failure[T]) Then(fn func(T)) Maybe[T] {
 	return f
 }
 
+// Get returns the error wrapped in Failure.
+// This method provides direct access to the error without type assertion.
+//
+// Example:
+//
+//	failure := Fail[int](errors.New("something went wrong"))
+//	err := failure.Get() // returns error directly (no type assertion needed)
+func (f Failure[T]) Get() (T, error) {
+	var zero T
+	return zero, f.e
+}
+
 // OrElseGet calls the provided function and returns its result.
 // Since Failure represents an error state with no valid value, this method always executes the function to get a default value.
 //

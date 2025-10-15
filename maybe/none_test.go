@@ -8,17 +8,62 @@ import (
 )
 
 func TestNone_Get(t *testing.T) {
-	t.Run("returns nil", func(t *testing.T) {
+	t.Run("returns zero value and nil error for int", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		if none.Get() != nil {
-			t.Error("None.Get() should return nil")
+		value, err := none.Get()
+		if err != nil {
+			t.Errorf("None.Get() should return nil error, got %v", err)
+		}
+		if value != 0 {
+			t.Errorf("expected zero value (0), got %d", value)
 		}
 	})
 
-	t.Run("returns nil for different types", func(t *testing.T) {
+	t.Run("returns zero value and nil error for string", func(t *testing.T) {
 		none := maybe.Empty[string]()
-		if none.Get() != nil {
-			t.Error("None.Get() should return nil")
+		value, err := none.Get()
+		if err != nil {
+			t.Error("None.Get() should return nil error")
+		}
+		if value != "" {
+			t.Errorf("expected zero value (empty string), got %s", value)
+		}
+	})
+
+	t.Run("returns zero value for bool", func(t *testing.T) {
+		none := maybe.Empty[bool]()
+		value, err := none.Get()
+		if err != nil {
+			t.Errorf("None.Get() should return nil error, got %v", err)
+		}
+		if value != false {
+			t.Errorf("expected zero value (false), got %v", value)
+		}
+	})
+
+	t.Run("returns nil and nil error for pointer type", func(t *testing.T) {
+		none := maybe.Empty[*int]()
+		value, err := none.Get()
+		if err != nil {
+			t.Errorf("None.Get() should return nil error, got %v", err)
+		}
+		if value != nil {
+			t.Errorf("expected nil pointer, got %v", value)
+		}
+	})
+
+	t.Run("returns zero value for struct", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		none := maybe.Empty[User]()
+		value, err := none.Get()
+		if err != nil {
+			t.Errorf("None.Get() should return nil error, got %v", err)
+		}
+		if value.Name != "" || value.Age != 0 {
+			t.Errorf("expected zero value User{}, got %+v", value)
 		}
 	})
 }

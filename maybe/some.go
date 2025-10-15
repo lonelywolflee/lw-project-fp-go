@@ -82,6 +82,16 @@ func (s Some[T]) Then(fn func(T)) Maybe[T] {
 	})
 }
 
+// Get returns the value inside Some.
+//
+// Example:
+//
+//	some := Just(5)
+//	value := some.Get() // returns 5
+func (s Some[T]) Get() (T, error) {
+	return s.GetValue(), nil
+}
+
 // OrElseGet returns the value inside Some.
 // Since Some contains a value, the provided function is never called.
 //
