@@ -37,7 +37,7 @@ import (
 //   - Database queries that return (result, error)
 func ToMaybe[T any](v T, err error) Maybe[T] {
 	if err != nil {
-		return Fail[T](err)
+		return Failed[T](err)
 	}
 	return Just(v)
 }
@@ -126,9 +126,9 @@ func Do[T any](fn func() Maybe[T]) (result Maybe[T]) {
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
-				result = Fail[T](err)
+				result = Failed[T](err)
 			} else {
-				result = Fail[T](errors.New(fmt.Sprint(r)))
+				result = Failed[T](errors.New(fmt.Sprint(r)))
 			}
 		}
 	}()
@@ -163,7 +163,7 @@ func Do[T any](fn func() Maybe[T]) (result Maybe[T]) {
 //	result := Map(Empty[int](), strconv.Itoa) // Empty[string]()
 //
 //	// Handles Failure - error is propagated with type conversion
-//	result := Map(Fail[int](err), strconv.Itoa) // Fail[string](err)
+//	result := Map(Failed[int](err), strconv.Itoa) // Failed[string](err)
 //
 //	// Chaining with method calls
 //	result := Map(
@@ -181,7 +181,7 @@ func Map[T, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
 			output = Empty[R]()
 		},
 		func(err error) {
-			output = Fail[R](err)
+			output = Failed[R](err)
 		},
 	)
 	return
@@ -210,7 +210,7 @@ func Map[T, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
 //	result := FlatMap(Just("42"), func(s string) Maybe[int] {
 //	    val, err := strconv.Atoi(s)
 //	    if err != nil {
-//	        return Fail[int](err)
+//	        return Failed[int](err)
 //	    }
 //	    return Just(val)
 //	}) // Just(42)
@@ -229,9 +229,9 @@ func Map[T, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
 //	}) // Empty[int]()
 //
 //	// Handles Failure - error is propagated with type conversion
-//	result := FlatMap(Fail[string](err), func(s string) Maybe[int] {
+//	result := FlatMap(Failed[string](err), func(s string) Maybe[int] {
 //	    return Just(len(s))
-//	}) // Fail[int](err)
+//	}) // Failed[int](err)
 //
 //	// Chaining for type conversion pipeline
 //	result := FlatMap(
@@ -239,7 +239,7 @@ func Map[T, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
 //	    func(s string) Maybe[int] {
 //	        val, err := strconv.Atoi(s)
 //	        if err != nil {
-//	            return Fail[int](err)
+//	            return Failed[int](err)
 //	        }
 //	        return Just(val)
 //	    },
@@ -255,7 +255,7 @@ func FlatMap[T, R any](m Maybe[T], fn func(T) Maybe[R]) (output Maybe[R]) {
 			output = Empty[R]()
 		},
 		func(err error) {
-			output = Fail[R](err)
+			output = Failed[R](err)
 		},
 	)
 	return

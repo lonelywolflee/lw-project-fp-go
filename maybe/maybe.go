@@ -90,9 +90,9 @@ type Maybe[T any] interface {
 	//
 	// Example:
 	//
-	//	value, err := Just(42).Get()           // value = 42, err = nil
-	//	value, err := Empty[int]().Get()       // value = 0, err = nil
-	//	value, err := Fail[int](someErr).Get() // value = 0, err = someErr
+	//	value, err := Just(42).Get()             // value = 42, err = nil
+	//	value, err := Empty[int]().Get()         // value = 0, err = nil
+	//	value, err := Failed[int](someErr).Get() // value = 0, err = someErr
 	Get() (T, error)
 
 	// OrElseGet returns the value inside Maybe if it exists (Some case),
@@ -104,7 +104,7 @@ type Maybe[T any] interface {
 	//
 	//	value := Just(42).OrElseGet(func(err error) int { return 0 })              // returns 42
 	//	value := Empty[int]().OrElseGet(func(err error) int { return 0 })          // returns 0, err is nil
-	//	value := Fail[int](err).OrElseGet(func(e error) int {
+	//	value := Failed[int](err).OrElseGet(func(e error) int {
 	//	    log.Printf("Error: %v", e)
 	//	    return 0
 	//	})  // returns 0, logs error
@@ -118,7 +118,7 @@ type Maybe[T any] interface {
 	//
 	//	value := Just(42).OrElseDefault(0)        // returns 42
 	//	value := Empty[int]().OrElseDefault(0)    // returns 0
-	//	value := Fail[int](err).OrElseDefault(0)  // returns 0
+	//	value := Failed[int](err).OrElseDefault(0)  // returns 0
 	OrElseDefault(v T) T
 
 	// FailIfEmpty converts None to Failure with an error from the provided function.
@@ -130,8 +130,8 @@ type Maybe[T any] interface {
 	// Example:
 	//
 	//	result := Just(42).FailIfEmpty(func() error { return errors.New("empty") })     // returns Just(42)
-	//	result := Empty[int]().FailIfEmpty(func() error { return errors.New("empty") }) // returns Fail[int]("empty")
-	//	result := Fail[int](err1).FailIfEmpty(func() error { return err2 })             // returns Fail[int](err1)
+	//	result := Empty[int]().FailIfEmpty(func() error { return errors.New("empty") }) // returns Failed[int]("empty")
+	//	result := Failed[int](err1).FailIfEmpty(func() error { return err2 })             // returns Failed[int](err1)
 	FailIfEmpty(func() error) Maybe[T]
 
 	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
@@ -158,10 +158,10 @@ type Maybe[T any] interface {
 	//	    func(err error) { fmt.Printf("Error: %v\n", err) },
 	//	) // prints "No value", returns Empty[int]()
 	//
-	//	result := Fail[int](err).MatchThen(
+	//	result := Failed[int](err).MatchThen(
 	//	    func(x int) { fmt.Printf("Value: %d\n", x) },
 	//	    func() { fmt.Println("No value") },
 	//	    func(err error) { fmt.Printf("Error: %v\n", err) },
-	//	) // prints "Error: <error message>", returns Fail[int](err)
+	//	) // prints "Error: <error message>", returns Failed[int](err)
 	MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 }

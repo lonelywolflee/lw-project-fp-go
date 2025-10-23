@@ -192,7 +192,7 @@ func TestSome_FlatMap(t *testing.T) {
 		testErr := errors.New("validation error")
 		result := some.FlatMap(func(x int) maybe.Maybe[int] {
 			if x < 10 {
-				return maybe.Fail[int](testErr)
+				return maybe.Failed[int](testErr)
 			}
 			return maybe.Just(x)
 		})

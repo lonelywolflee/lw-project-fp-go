@@ -369,7 +369,7 @@ func TestDo(t *testing.T) {
 	t.Run("returns Failure when function returns Failure", func(t *testing.T) {
 		err := errors.New("test error")
 		result := maybe.Do(func() maybe.Maybe[int] {
-			return maybe.Fail[int](err)
+			return maybe.Failed[int](err)
 		})
 
 		failure, ok := result.(maybe.Failure[int])
@@ -536,7 +536,7 @@ func TestMap(t *testing.T) {
 
 	t.Run("propagates Failure to different type", func(t *testing.T) {
 		originalErr := errors.New("original error")
-		result := maybe.Map(maybe.Fail[int](originalErr), func(x int) string {
+		result := maybe.Map(maybe.Failed[int](originalErr), func(x int) string {
 			return "value"
 		})
 
@@ -674,7 +674,7 @@ func TestFlatMap(t *testing.T) {
 
 	t.Run("propagates Failure to different type", func(t *testing.T) {
 		originalErr := errors.New("original error")
-		result := maybe.FlatMap(maybe.Fail[int](originalErr), func(x int) maybe.Maybe[string] {
+		result := maybe.FlatMap(maybe.Failed[int](originalErr), func(x int) maybe.Maybe[string] {
 			return maybe.Just("value")
 		})
 
@@ -708,7 +708,7 @@ func TestFlatMap(t *testing.T) {
 			if s == "valid" {
 				return maybe.Just(100)
 			}
-			return maybe.Fail[int](errors.New("validation failed"))
+			return maybe.Failed[int](errors.New("validation failed"))
 		})
 
 		failure, ok := result.(maybe.Failure[int])

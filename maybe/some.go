@@ -135,7 +135,7 @@ func (s Some[T]) FailIfEmpty(fn func() error) Maybe[T] {
 //	some := Just(5)
 //	result := some.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) })                            // prints 5
 //	result := Empty[int]().MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) })                    // prints "none"
-//	result := Fail[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
+//	result := Failed[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
 	return Do(func() Maybe[T] {
 		someFn(s.v)

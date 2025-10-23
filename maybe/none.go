@@ -96,10 +96,10 @@ func (n None[T]) OrElseDefault(v T) T {
 // Example:
 //
 //	none := Empty[int]()
-//	result := none.FailIfEmpty(func() error { return errors.New("value required") }) // returns Fail[int]("value required")
+//	result := none.FailIfEmpty(func() error { return errors.New("value required") }) // returns Failed[int]("value required")
 func (n None[T]) FailIfEmpty(fn func() error) Maybe[T] {
 	return Do(func() Maybe[T] {
-		return Fail[T](fn())
+		return Failed[T](fn())
 	})
 }
 
@@ -112,7 +112,7 @@ func (n None[T]) FailIfEmpty(fn func() error) Maybe[T] {
 //
 //	none := Empty[int]()
 //	result := none.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) })                            // prints "none"
-//	result := Fail[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
+//	result := Failed[int](errors.New("failed")).MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
 	return Do(func() Maybe[T] {
 		noneFn()

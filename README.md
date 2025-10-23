@@ -176,7 +176,7 @@ func main() {
     fmt.Println(result) // Just(42)
 
     result2 := maybe.ToMaybe(strconv.Atoi("invalid"))
-    fmt.Println(result2) // Fail(error)
+    fmt.Println(result2) // Failed(error)
 
     // Chain with other operations
     parsed := maybe.ToMaybe(strconv.Atoi("100")).
@@ -226,10 +226,10 @@ import (
 
 func validateAge(age int) maybe.Maybe[int] {
     if age < 0 {
-        return maybe.Fail[int](errors.New("age cannot be negative"))
+        return maybe.Failed[int](errors.New("age cannot be negative"))
     }
     if age > 150 {
-        return maybe.Fail[int](errors.New("age too high"))
+        return maybe.Failed[int](errors.New("age too high"))
     }
     return maybe.Just(age)
 }
@@ -285,12 +285,12 @@ func validateUser(name, email string, age int) maybe.Maybe[User] {
     return maybe.FlatMap(validatedName, func(n string) maybe.Maybe[User] {
         // Validate email
         if !strings.Contains(email, "@") {
-            return maybe.Fail[User](errors.New("invalid email"))
+            return maybe.Failed[User](errors.New("invalid email"))
         }
 
         // Validate age
         if age < 0 || age > 150 {
-            return maybe.Fail[User](errors.New("invalid age"))
+            return maybe.Failed[User](errors.New("invalid age"))
         }
 
         return maybe.Just(User{
@@ -430,7 +430,7 @@ func processResult(m maybe.Maybe[int]) {
 func main() {
     processResult(maybe.Just(42))              // Success: Got value 42
     processResult(maybe.Empty[int]())          // Empty: No value present
-    processResult(maybe.Fail[int](fmt.Errorf("failed"))) // Error: failed
+    processResult(maybe.Failed[int](fmt.Errorf("failed"))) // Error: failed
 }
 ```
 
@@ -456,7 +456,7 @@ value := maybe.Just(42)
 empty := maybe.Empty[int]()
 
 // Create a Failure (error state)
-failed := maybe.Fail[int](errors.New("something went wrong"))
+failed := maybe.Failed[int](errors.New("something went wrong"))
 ```
 
 ## Usage Examples
@@ -526,10 +526,10 @@ if err != nil {
 ```go
 func validateAge(age int) maybe.Maybe[int] {
     if age < 0 {
-        return maybe.Fail[int](errors.New("age cannot be negative"))
+        return maybe.Failed[int](errors.New("age cannot be negative"))
     }
     if age > 150 {
-        return maybe.Fail[int](errors.New("age too high"))
+        return maybe.Failed[int](errors.New("age too high"))
     }
     return maybe.Just(age)
 }
@@ -604,7 +604,7 @@ value, err := maybe.Empty[int]().Get()
 // value = 0, err = nil
 
 // For Failure: returns zero value and the error
-value, err := maybe.Fail[int](errors.New("failed")).Get()
+value, err := maybe.Failed[int](errors.New("failed")).Get()
 // value = 0, err = error("failed")
 
 // Practical example: database query
@@ -625,7 +625,7 @@ value := maybe.Just(42).OrElseGet(func(err error) int { return 0 })
 value := maybe.Empty[int]().OrElseGet(func(err error) int { return 0 })
 // Returns: 0 (err is nil for None)
 
-value := maybe.Fail[int](err).OrElseGet(func(e error) int {
+value := maybe.Failed[int](err).OrElseGet(func(e error) int {
     log.Printf("Error occurred: %v", e)
     return computeDefault()
 })
@@ -647,7 +647,7 @@ value := maybe.Just(42).OrElseDefault(0)
 value := maybe.Empty[int]().OrElseDefault(0)
 // Returns: 0 (constant default)
 
-value := maybe.Fail[int](err).OrElseDefault(0)
+value := maybe.Failed[int](err).OrElseDefault(0)
 // Returns: 0 (constant default)
 
 // Practical example: config with fallback
@@ -666,12 +666,12 @@ result := maybe.Just(42).FailIfEmpty(func() error { return errors.New("empty") }
 
 // None: converts to Failure (empty becomes error, function called)
 result := maybe.Empty[int]().FailIfEmpty(func() error { return errors.New("value required") })
-// Returns: Fail[int]("value required")
+// Returns: Failed[int]("value required")
 
 // Failure: returns unchanged (preserves original error, function not called)
-result := maybe.Fail[int](errors.New("original")).
+result := maybe.Failed[int](errors.New("original")).
     FailIfEmpty(func() error { return errors.New("new") })
-// Returns: Fail[int]("original") - function not called
+// Returns: Failed[int]("original") - function not called
 
 // Practical example: required field validation
 func validateUser(name string, age int) maybe.Maybe[User] {
@@ -815,7 +815,7 @@ func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(erro
 |----------|-------------|
 | `Just[T](v T) Some[T]` | Creates a Some containing a value |
 | `Empty[T]() None[T]` | Creates an empty None |
-| `Fail[T](e error) Failure[T]` | Creates a Failure containing an error |
+| `Failed[T](e error) Failure[T]` | Creates a Failure containing an error |
 
 ### Helper Functions
 

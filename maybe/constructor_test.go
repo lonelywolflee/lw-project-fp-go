@@ -51,7 +51,7 @@ func TestEmpty(t *testing.T) {
 func TestFail(t *testing.T) {
 	t.Run("creates Failure with error", func(t *testing.T) {
 		err := errors.New("test error")
-		failure := maybe.Fail[int](err)
+		failure := maybe.Failed[int](err)
 		_, gotErr := failure.Get()
 		if gotErr != err {
 			t.Errorf("expected %v, got %v", err, gotErr)
@@ -60,7 +60,7 @@ func TestFail(t *testing.T) {
 
 	t.Run("creates Failure with different error message", func(t *testing.T) {
 		err := errors.New("another error")
-		failure := maybe.Fail[string](err)
+		failure := maybe.Failed[string](err)
 		_, gotErr := failure.Get()
 		if gotErr.Error() != "another error" {
 			t.Errorf("expected 'another error', got %s", gotErr.Error())

@@ -25,13 +25,13 @@ func Empty[T any]() None[T] {
 	return None[T]{}
 }
 
-// Fail creates a Maybe that represents an error state (Failure).
+// Failed creates a Maybe that represents an error state (Failure).
 // Use this when you want to wrap an error in the Maybe monad.
 //
 // Example:
 //
-//	maybe := Fail[int](errors.New("something went wrong"))
+//	maybe := Failed[int](errors.New("something went wrong"))
 //	_, err := maybe.Get() // returns zero value and the error
-func Fail[T any](e error) Failure[T] {
+func Failed[T any](e error) Failure[T] {
 	return Failure[T]{e: e}
 }

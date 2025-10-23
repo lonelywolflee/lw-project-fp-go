@@ -15,8 +15,8 @@ type Failure[T any] struct {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
-//	result := failure.Map(func(x int) int { return x * 2 }) // Fail[int](error)
+//	failure := Failed[int](errors.New("failed"))
+//	result := failure.Map(func(x int) int { return x * 2 }) // Failed[int](error)
 func (f Failure[T]) Map(fn func(T) T) Maybe[T] {
 	return f
 }
@@ -27,10 +27,10 @@ func (f Failure[T]) Map(fn func(T) T) Maybe[T] {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
+//	failure := Failed[int](errors.New("failed"))
 //	result := failure.FlatMap(func(x int) Maybe[int] {
 //	    return Just(x * 2)
-//	}) // Fail[int](error)
+//	}) // Failed[int](error)
 func (f Failure[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T] {
 	return f
 }
@@ -41,8 +41,8 @@ func (f Failure[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T] {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
-//	result := failure.Filter(func(x int) bool { return x > 0 }) // Fail[int](error)
+//	failure := Failed[int](errors.New("failed"))
+//	result := failure.Filter(func(x int) bool { return x > 0 }) // Failed[int](error)
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T] {
 	return f
 }
@@ -53,8 +53,8 @@ func (f Failure[T]) Filter(fn func(T) bool) Maybe[T] {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
-//	result := failure.Then(func(x int) { println(x) }) // Fail[int](error)
+//	failure := Failed[int](errors.New("failed"))
+//	result := failure.Then(func(x int) { println(x) }) // Failed[int](error)
 func (f Failure[T]) Then(fn func(T)) Maybe[T] {
 	return f
 }
@@ -64,7 +64,7 @@ func (f Failure[T]) Then(fn func(T)) Maybe[T] {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("something went wrong"))
+//	failure := Failed[int](errors.New("something went wrong"))
 //	err := failure.Get() // returns error directly (no type assertion needed)
 func (f Failure[T]) Get() (T, error) {
 	var zero T
@@ -77,7 +77,7 @@ func (f Failure[T]) Get() (T, error) {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
+//	failure := Failed[int](errors.New("failed"))
 //	result := failure.OrElseGet(func(err error) int {
 //	    log.Printf("Error occurred: %v", err)
 //	    return 10
@@ -91,7 +91,7 @@ func (f Failure[T]) OrElseGet(fn func(error) T) T {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
+//	failure := Failed[int](errors.New("failed"))
 //	result := failure.OrElseDefault(10) // returns 10
 func (f Failure[T]) OrElseDefault(v T) T {
 	return v
@@ -102,8 +102,8 @@ func (f Failure[T]) OrElseDefault(v T) T {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("database error"))
-//	result := failure.FailIfEmpty(func() error { return errors.New("empty") }) // returns Fail[int]("database error"), function not called
+//	failure := Failed[int](errors.New("database error"))
+//	result := failure.FailIfEmpty(func() error { return errors.New("empty") }) // returns Failed[int]("database error"), function not called
 func (f Failure[T]) FailIfEmpty(fn func() error) Maybe[T] {
 	return f
 }
@@ -115,7 +115,7 @@ func (f Failure[T]) FailIfEmpty(fn func() error) Maybe[T] {
 //
 // Example:
 //
-//	failure := Fail[int](errors.New("failed"))
+//	failure := Failed[int](errors.New("failed"))
 //	result := failure.MatchThen(func(x int) { println(x) }, func() { println("none") }, func(err error) { println(err) }) // prints "failed"
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T] {
 	return Do(func() Maybe[T] {
