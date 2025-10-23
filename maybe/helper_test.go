@@ -7,39 +7,6 @@ import (
 	"github.com/lonelywolflee/lw-project-fp-go/maybe"
 )
 
-// customMaybe is a test helper type that implements Maybe[int] interface
-// but is not actually Some, None, or Failure. This is used to test the
-// default case in helper functions Map and FlatMap.
-type customMaybe struct{}
-
-func (customMaybe) Map(fn func(int) int) maybe.Maybe[int] {
-	return maybe.Empty[int]()
-}
-func (customMaybe) FlatMap(fn func(int) maybe.Maybe[int]) maybe.Maybe[int] {
-	return maybe.Empty[int]()
-}
-func (customMaybe) Filter(fn func(int) bool) maybe.Maybe[int] {
-	return maybe.Empty[int]()
-}
-func (customMaybe) Then(fn func(int)) maybe.Maybe[int] {
-	return maybe.Empty[int]()
-}
-func (customMaybe) Get() (int, error) {
-	return 0, nil // Acts like None but isn't actually None type
-}
-func (customMaybe) OrElseGet(fn func(error) int) int {
-	return 0
-}
-func (customMaybe) OrElseDefault(v int) int {
-	return v
-}
-func (customMaybe) FailIfEmpty(fn func() error) maybe.Maybe[int] {
-	return maybe.Empty[int]()
-}
-func (customMaybe) MatchThen(someFn func(int), noneFn func(), failureFn func(error)) maybe.Maybe[int] {
-	return maybe.Empty[int]()
-}
-
 func TestDo(t *testing.T) {
 	t.Run("returns result when no panic occurs", func(t *testing.T) {
 		result := maybe.Do(func() maybe.Maybe[int] {
@@ -327,19 +294,6 @@ func TestMap(t *testing.T) {
 		}
 	})
 
-	t.Run("handles unknown Maybe implementation (default case)", func(t *testing.T) {
-		// Use the custom Maybe implementation to test the default case
-		custom := customMaybe{}
-		result := maybe.Map(custom, func(x int) string {
-			return "should not reach"
-		})
-
-		// Should return Empty[string]() due to default case
-		_, ok := result.(maybe.None[string])
-		if !ok {
-			t.Fatal("Map should return None[string] for unknown Maybe implementation")
-		}
-	})
 }
 
 func TestFlatMap(t *testing.T) {
@@ -504,20 +458,6 @@ func TestFlatMap(t *testing.T) {
 		_, ok := result.(maybe.None[string])
 		if !ok {
 			t.Fatal("FlatMap should return None[string] when Filter returns None")
-		}
-	})
-
-	t.Run("handles unknown Maybe implementation (default case)", func(t *testing.T) {
-		// Use the custom Maybe implementation to test the default case
-		custom := customMaybe{}
-		result := maybe.FlatMap(custom, func(x int) maybe.Maybe[string] {
-			return maybe.Just("should not reach")
-		})
-
-		// Should return Empty[string]() due to default case
-		_, ok := result.(maybe.None[string])
-		if !ok {
-			t.Fatal("FlatMap should return None[string] for unknown Maybe implementation")
 		}
 	})
 }

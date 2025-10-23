@@ -69,26 +69,21 @@ func Do[T any](fn func() Maybe[T]) (result Maybe[T]) {
 //	    Just(5).Filter(func(x int) bool { return x > 0 }),
 //	    strconv.Itoa,
 //	) // Just("5")
-func Map[T any, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
-	value, err := m.Get()
-	if err != nil {
-		// Propagate Failure
-		return Fail[R](err)
-	}
-
-	// Check if it's None by type assertion
-	switch m.(type) {
-	case None[T]:
-		return Empty[R]()
-	case Some[T]:
-		// Apply the transformation with panic recovery
-		return Do(func() Maybe[R] {
-			return Just(fn(value))
-		})
-	default:
-		// This should never happen, but return None as fallback
-		return Empty[R]()
-	}
+func Map[T, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
+	m.MatchThen(
+		func(v T) {
+			output = Do(func() Maybe[R] {
+				return Just(fn(v))
+			})
+		},
+		func() {
+			output = Empty[R]()
+		},
+		func(err error) {
+			output = Fail[R](err)
+		},
+	)
+	return
 }
 
 // FlatMap transforms a Maybe[T] to Maybe[R] using a function that returns Maybe[R].
@@ -148,24 +143,19 @@ func Map[T any, R any](m Maybe[T], fn func(T) R) (output Maybe[R]) {
 //	        return Just(val)
 //	    },
 //	) // Just(123)
-func FlatMap[T any, R any](m Maybe[T], fn func(T) Maybe[R]) (output Maybe[R]) {
-	value, err := m.Get()
-	if err != nil {
-		// Propagate Failure
-		return Fail[R](err)
-	}
-
-	// Check if it's None by type assertion
-	switch m.(type) {
-	case None[T]:
-		return Empty[R]()
-	case Some[T]:
-		// Apply the transformation with panic recovery
-		return Do(func() Maybe[R] {
-			return fn(value)
-		})
-	default:
-		// This should never happen, but return None as fallback
-		return Empty[R]()
-	}
+func FlatMap[T, R any](m Maybe[T], fn func(T) Maybe[R]) (output Maybe[R]) {
+	m.MatchThen(
+		func(v T) {
+			output = Do(func() Maybe[R] {
+				return fn(v)
+			})
+		},
+		func() {
+			output = Empty[R]()
+		},
+		func(err error) {
+			output = Fail[R](err)
+		},
+	)
+	return
 }
