@@ -141,17 +141,6 @@ func (f Failure[T]) OrElseDefault(v T) T {
 	return v
 }
 
-// FailIfEmpty returns the original Failure unchanged, preserving the original error.
-// The provided function is not called because Failure already contains an error.
-//
-// Example:
-//
-//	failure := Failed[int](errors.New("database error"))
-//	result := failure.FailIfEmpty(func() error { return errors.New("empty") }) // returns Failed[int]("database error"), function not called
-func (f Failure[T]) FailIfEmpty(fn func() error) Maybe[T] {
-	return f
-}
-
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

@@ -191,8 +191,8 @@ func main() {
         return os.ReadFile("config.json")
     }).Filter(func(data []byte) bool {
         return len(data) > 0
-    }).FailIfEmpty(func() error {
-        return fmt.Errorf("config file is empty")
+    }).MapIfEmpty(func() ([]byte, error) {
+        return nil, fmt.Errorf("config file is empty")
     })
 
     // Try catches both errors and panics
@@ -277,9 +277,9 @@ func validateUser(name, email string, age int) maybe.Maybe[User] {
     // Validate name using method chaining
     validatedName := maybe.Just(name).
         Filter(func(n string) bool { return len(strings.TrimSpace(n)) > 0 }).
-        FailIfEmpty(func() error { return errors.New("name is required") }).
+        MapIfEmpty(func() (string, error) { return "", errors.New("name is required") }).
         Filter(func(n string) bool { return len(n) < 100 }).
-        FailIfEmpty(func() error { return errors.New("name too long") })
+        MapIfEmpty(func() (string, error) { return "", errors.New("name too long") })
 
     // Transform to User struct using helper FlatMap (type conversion: string → User)
     return maybe.FlatMap(validatedName, func(n string) maybe.Maybe[User] {
@@ -342,7 +342,7 @@ func parseAndValidate(input string) maybe.Maybe[string] {
     // Validate using method chaining (same type: int → int)
     validatedInt := parsedInt.
         Filter(func(x int) bool { return x > 0 }).
-        FailIfEmpty(func() error { return fmt.Errorf("value must be positive") })
+        MapIfEmpty(func() (int, error) { return 0, fmt.Errorf("value must be positive") })
 
     // Format to string using helper Map (type conversion: int → string)
     return maybe.Map(validatedInt, func(x int) string {
@@ -656,47 +656,6 @@ config := fetchConfig().
     OrElseDefault(DefaultConfig)
 ```
 
-### Converting Empty to Failure with FailIfEmpty
-
-```go
-// FailIfEmpty converts None to Failure, useful for validation pipelines
-// Some: returns unchanged (value is present, function not called)
-result := maybe.Just(42).FailIfEmpty(func() error { return errors.New("empty") })
-// Returns: Just(42) - function not called
-
-// None: converts to Failure (empty becomes error, function called)
-result := maybe.Empty[int]().FailIfEmpty(func() error { return errors.New("value required") })
-// Returns: Failed[int]("value required")
-
-// Failure: returns unchanged (preserves original error, function not called)
-result := maybe.Failed[int](errors.New("original")).
-    FailIfEmpty(func() error { return errors.New("new") })
-// Returns: Failed[int]("original") - function not called
-
-// Practical example: required field validation
-func validateUser(name string, age int) maybe.Maybe[User] {
-    return findUser(name).  // returns Maybe[User]
-        FailIfEmpty(func() error { return errors.New("user not found") }).
-        Filter(func(u User) bool { return u.Age == age }).
-        FailIfEmpty(func() error { return errors.New("age mismatch") })
-}
-
-// Practical example: database query with required result
-func getUserByID(id int) (User, error) {
-    return queryUser(id).  // returns Maybe[User]
-        FailIfEmpty(func() error { return errors.New("user not found") }).
-        Get()  // converts to (User, error)
-}
-
-// Railway-oriented programming with FailIfEmpty
-result := fetchConfig().
-    FailIfEmpty(func() error { return errors.New("config not found") }).
-    Filter(func(c Config) bool { return c.IsValid() }).
-    FailIfEmpty(func() error { return errors.New("config invalid") }).
-    Map(func(c Config) any { return c.Apply() })
-// First error in chain is propagated
-```
-
 ### Error Recovery and Transformation with MapIfEmpty and MapIfFailed
 
 These methods provide dual-purpose functionality: **recovery** (converting to Some) and **error transformation** (converting to/modifying Failure).
@@ -709,7 +668,7 @@ result := maybe.Empty[int]().MapIfEmpty(func() (int, error) {
     return 42, nil  // Provide default value
 }) // Just(42)
 
-// MapIfEmpty Pattern 2: Error Transformation - convert None to Failure (alternative to FailIfEmpty)
+// MapIfEmpty Pattern 2: Error Transformation - convert None to Failure
 result := maybe.Empty[int]().MapIfEmpty(func() (int, error) {
     return 0, errors.New("value required")
 }) // Failed[int]("value required")
@@ -792,13 +751,12 @@ result := processInput(input).
         return Result{}, err
     })
 
-// Example 5: Error transformation - MapIfEmpty as FailIfEmpty alternative
+// Example 5: Error transformation - Converting None to domain-specific error
 user := findUserInCache(id).
     MapIfEmpty(func() (User, error) {
         // Convert None to domain-specific error
         return User{}, fmt.Errorf("user %d not in cache", id)
     })
-// Equivalent to: FailIfEmpty(func() error { return fmt.Errorf("user %d not in cache", id) })
 
 // Example 6: Error transformation - enriching errors with context
 result := databaseQuery(sql).
@@ -825,7 +783,7 @@ payment := processPayment(order).
 
 **MapIfEmpty:**
 - **Recovery**: Provide default values or fallback logic for empty states
-- **Error Transformation**: Convert None to Failure with custom error (alternative to FailIfEmpty)
+- **Error Transformation**: Convert None to Failure with custom error
 
 **MapIfFailed:**
 - **Recovery**: Convert Failure to Some by providing fallback values or retry logic
@@ -894,8 +852,9 @@ type Maybe[T any] interface {
     OrElseGet(fn func(error) T) T
     OrElseDefault(v T) T
 
-    // Error handling
-    FailIfEmpty(fn func() error) Maybe[T]
+    // Error handling and recovery
+    MapIfEmpty(fn func() (T, error)) Maybe[T]
+    MapIfFailed(fn func(error) (T, error)) Maybe[T]
     MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 }
 ```
@@ -911,7 +870,8 @@ func (s Some[T]) Then(fn func(T)) Maybe[T]
 func (s Some[T]) Get() (T, error)
 func (s Some[T]) OrElseGet(fn func(error) T) T
 func (s Some[T]) OrElseDefault(v T) T
-func (s Some[T]) FailIfEmpty(fn func() error) Maybe[T]
+func (s Some[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
+func (s Some[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
@@ -926,7 +886,8 @@ func (n None[T]) Then(fn func(T)) Maybe[T]
 func (n None[T]) Get() (T, error)
 func (n None[T]) OrElseGet(fn func(error) T) T
 func (n None[T]) OrElseDefault(v T) T
-func (n None[T]) FailIfEmpty(fn func() error) Maybe[T]
+func (n None[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
+func (n None[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 
@@ -941,7 +902,8 @@ func (f Failure[T]) Then(fn func(T)) Maybe[T]
 func (f Failure[T]) Get() (T, error)
 func (f Failure[T]) OrElseGet(fn func(error) T) T
 func (f Failure[T]) OrElseDefault(v T) T
-func (f Failure[T]) FailIfEmpty(fn func() error) Maybe[T]
+func (f Failure[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
+func (f Failure[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
 ```
 

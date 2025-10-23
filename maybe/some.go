@@ -140,17 +140,6 @@ func (s Some[T]) OrElseDefault(v T) T {
 	return s.v
 }
 
-// FailIfEmpty returns the original Some unchanged since it contains a value.
-// The provided function is not called because Some is not empty.
-//
-// Example:
-//
-//	some := Just(5)
-//	result := some.FailIfEmpty(func() error { return errors.New("empty") }) // returns Just(5), function not called
-func (s Some[T]) FailIfEmpty(fn func() error) Maybe[T] {
-	return s
-}
-
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

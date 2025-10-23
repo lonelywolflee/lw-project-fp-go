@@ -52,7 +52,7 @@ type Maybe[T any] interface {
 	//
 	// Use Cases:
 	//   1. Recovery: Provide default values or fallback logic when a value is absent
-	//   2. Error Transformation: Convert None to Failure with custom error (alternative to FailIfEmpty)
+	//   2. Error Transformation: Convert None to Failure with custom error
 	//
 	// Example:
 	//
@@ -61,7 +61,7 @@ type Maybe[T any] interface {
 	//	    return 42, nil
 	//	}) // Just(42)
 	//
-	//	// Use Case 2: Error Transformation - Convert None to Failure (alternative to FailIfEmpty)
+	//	// Use Case 2: Error Transformation - Convert None to Failure
 	//	result := Empty[int]().MapIfEmpty(func() (int, error) {
 	//	    return 0, errors.New("value required")
 	//	}) // Failed[int]("value required")
@@ -216,19 +216,6 @@ type Maybe[T any] interface {
 	//	value := Empty[int]().OrElseDefault(0)    // returns 0
 	//	value := Failed[int](err).OrElseDefault(0)  // returns 0
 	OrElseDefault(v T) T
-
-	// FailIfEmpty converts None to Failure with an error from the provided function.
-	// For Some: returns the original Some unchanged (value is present, function not called)
-	// For None: calls the function to get an error and returns Failure (empty state becomes failure)
-	// For Failure: returns the original Failure unchanged (already failed, function not called)
-	// This is useful for converting "empty" states into explicit errors with lazy evaluation.
-	//
-	// Example:
-	//
-	//	result := Just(42).FailIfEmpty(func() error { return errors.New("empty") })     // returns Just(42)
-	//	result := Empty[int]().FailIfEmpty(func() error { return errors.New("empty") }) // returns Failed[int]("empty")
-	//	result := Failed[int](err1).FailIfEmpty(func() error { return err2 })             // returns Failed[int](err1)
-	FailIfEmpty(func() error) Maybe[T]
 
 	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
 	// This provides a type-safe way to handle all three Maybe states (Some, None, Failure) with custom behavior.

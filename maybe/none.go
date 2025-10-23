@@ -31,7 +31,7 @@ func (n None[T]) Map(fn func(T) T) Maybe[T] {
 //	    return 42, nil
 //	}) // Just(42)
 //
-//	// Error transformation: Convert None to Failure (alternative to FailIfEmpty)
+//	// Error transformation: Convert None to Failure
 //	result := Empty[int]().MapIfEmpty(func() (int, error) {
 //	    return 0, errors.New("value required")
 //	}) // Failed[int]("value required")
@@ -126,20 +126,6 @@ func (n None[T]) OrElseGet(fn func(error) T) T {
 //	result := none.OrElseDefault(10) // returns 10
 func (n None[T]) OrElseDefault(v T) T {
 	return v
-}
-
-// FailIfEmpty converts None to Failure by calling the provided function to get an error.
-// This is useful for treating "empty" as an error condition in a processing pipeline.
-// The function is only called when None is encountered (lazy evaluation).
-//
-// Example:
-//
-//	none := Empty[int]()
-//	result := none.FailIfEmpty(func() error { return errors.New("value required") }) // returns Failed[int]("value required")
-func (n None[T]) FailIfEmpty(fn func() error) Maybe[T] {
-	return Do(func() Maybe[T] {
-		return Failed[T](fn())
-	})
 }
 
 // MatchThen applies the given functions based on the type of Maybe.

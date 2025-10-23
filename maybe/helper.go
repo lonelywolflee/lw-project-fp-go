@@ -83,8 +83,8 @@ func ToMaybe[T any](v T, err error) Maybe[T] {
 //	    return cfg, err
 //	}).Filter(func(c Config) bool {
 //	    return c.IsValid()
-//	}).FailIfEmpty(func() error {
-//	    return errors.New("invalid config")
+//	}).MapIfEmpty(func() (Config, error) {
+//	    return Config{}, errors.New("invalid config")
 //	})
 //
 // Difference between Try and ToMaybe:

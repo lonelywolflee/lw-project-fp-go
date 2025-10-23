@@ -319,18 +319,18 @@ func TestTry(t *testing.T) {
 		}
 	})
 
-	t.Run("can be used with FailIfEmpty", func(t *testing.T) {
+	t.Run("can be used with MapIfEmpty for error transformation", func(t *testing.T) {
 		result := maybe.Try(func() (int, error) {
 			return strconv.Atoi("42")
 		}).Filter(func(x int) bool {
 			return x > 100 // Will fail
-		}).FailIfEmpty(func() error {
-			return errors.New("value must be greater than 100")
+		}).MapIfEmpty(func() (int, error) {
+			return 0, errors.New("value must be greater than 100")
 		})
 
 		failure, ok := result.(maybe.Failure[int])
 		if !ok {
-			t.Fatal("should return Failure after FailIfEmpty")
+			t.Fatal("should return Failure after MapIfEmpty")
 		}
 		_, err := failure.Get()
 		if err.Error() != "value must be greater than 100" {
