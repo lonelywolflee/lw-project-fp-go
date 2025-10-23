@@ -10,6 +10,7 @@ A lightweight, type-safe functional programming library for Go that implements t
 
 - **Type-Safe**: Full generic support for compile-time type checking
 - **Zero Dependencies**: Pure Go implementation with no external dependencies
+- **Go Interop**: Seamless integration with Go's standard `(T, error)` pattern via `ToMaybe` and `Try`
 - **Panic Recovery**: Automatic panic-to-error conversion
 - **Railway-Oriented Programming**: Clean error handling with railway pattern
 - **Go-Idiomatic Design**: Works with Go's type system, not against it
@@ -155,7 +156,62 @@ func main() {
 }
 ```
 
-### 3. Error Handling with Railway-Oriented Programming
+### 3. Interop with Go Standard Library (ToMaybe & Try)
+
+Easily integrate Go's standard `(T, error)` pattern with Maybe:
+
+```go
+package main
+
+import (
+    "fmt"
+    "strconv"
+    "os"
+    "github.com/lonelywolflee/lw-project-fp-go/maybe"
+)
+
+func main() {
+    // ToMaybe: Convert (value, error) tuple to Maybe
+    result := maybe.ToMaybe(strconv.Atoi("42"))
+    fmt.Println(result) // Just(42)
+
+    result2 := maybe.ToMaybe(strconv.Atoi("invalid"))
+    fmt.Println(result2) // Fail(error)
+
+    // Chain with other operations
+    parsed := maybe.ToMaybe(strconv.Atoi("100")).
+        Filter(func(x int) bool { return x > 0 }).
+        Map(func(x int) int { return x * 2 })
+
+    value, _ := parsed.Get()
+    fmt.Println(value) // Output: 200
+
+    // Try: Execute function with both error AND panic handling
+    config := maybe.Try(func() ([]byte, error) {
+        return os.ReadFile("config.json")
+    }).Filter(func(data []byte) bool {
+        return len(data) > 0
+    }).FailIfEmpty(func() error {
+        return fmt.Errorf("config file is empty")
+    })
+
+    // Try catches both errors and panics
+    safeParse := maybe.Try(func() (int, error) {
+        return strconv.Atoi("42")
+    }).Map(func(x int) int {
+        return x * 2
+    })
+
+    value2, _ := safeParse.Get()
+    fmt.Println(value2) // Output: 84
+}
+```
+
+**When to use:**
+- **ToMaybe**: When you already have a `(T, error)` tuple from standard library functions
+- **Try**: When you need panic protection in addition to error handling
+
+### 4. Error Handling with Railway-Oriented Programming
 
 Build pipelines where errors automatically propagate:
 
@@ -197,7 +253,7 @@ func main() {
 }
 ```
 
-### 4. Practical Example: Data Validation Pipeline
+### 5. Practical Example: Data Validation Pipeline
 
 A real-world example combining multiple features:
 
@@ -266,7 +322,7 @@ func main() {
 }
 ```
 
-### 5. Combining Type Conversion with Validation
+### 6. Combining Type Conversion with Validation
 
 Use helper functions with method chaining for powerful pipelines:
 
@@ -280,17 +336,8 @@ import (
 )
 
 func parseAndValidate(input string) maybe.Maybe[string] {
-    // Parse string to int using helper FlatMap (type conversion: string → int)
-    parsedInt := maybe.FlatMap(
-        maybe.Just(input),
-        func(s string) maybe.Maybe[int] {
-            val, err := strconv.Atoi(s)
-            if err != nil {
-                return maybe.Fail[int](err)
-            }
-            return maybe.Just(val)
-        },
-    )
+    // Parse string to int using ToMaybe (converts (value, error) to Maybe)
+    parsedInt := maybe.ToMaybe(strconv.Atoi(input))
 
     // Validate using method chaining (same type: int → int)
     validatedInt := parsedInt.
@@ -774,11 +821,16 @@ func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(erro
 
 | Function | Description |
 |----------|-------------|
+| `ToMaybe[T](v T, err error) Maybe[T]` | Converts Go's standard (value, error) pattern to Maybe[T] |
+| `Try[T](fn func() (T, error)) Maybe[T]` | Executes a function with both error and panic handling |
 | `Do[T](fn func() Maybe[T]) Maybe[T]` | Executes a function with panic recovery |
 | `Map[T, R](m Maybe[T], fn func(T) R) Maybe[R]` | Transforms Maybe[T] to Maybe[R] (type conversion) |
 | `FlatMap[T, R](m Maybe[T], fn func(T) Maybe[R]) Maybe[R]` | FlatMaps Maybe[T] to Maybe[R] (type conversion) |
 
-**Note**: The helper `Map` and `FlatMap` functions enable type conversion across different types, which is not possible with the Maybe interface methods due to Go's type system constraints.
+**Key Features:**
+- **ToMaybe** and **Try**: Bridge the gap between Go's standard error handling and the Maybe monad
+- **Map** and **FlatMap**: Enable type conversion across different types (not possible with methods)
+- **Do**: Provides panic recovery for risky operations
 
 ## Pattern Matching Example
 
