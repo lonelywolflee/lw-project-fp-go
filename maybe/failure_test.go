@@ -1056,3 +1056,121 @@ func TestFailure_FailIfEmpty(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_MapIfEmpty(t *testing.T) {
+	t.Run("returns original Failure unchanged", func(t *testing.T) {
+		originalErr := errors.New("original error")
+		failure := maybe.Failed[int](originalErr)
+		called := false
+
+		result := failure.MapIfEmpty(func() (int, error) {
+			called = true
+			return 100, nil
+		})
+
+		if called {
+			t.Error("MapIfEmpty should not call function for Failure")
+		}
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfEmpty should return Failure for Failure")
+		}
+		_, err := resultFailure.Get()
+		if err != originalErr {
+			t.Errorf("expected %v, got %v", originalErr, err)
+		}
+	})
+}
+
+func TestFailure_MapIfFailed(t *testing.T) {
+	t.Run("executes recovery function and returns Some", func(t *testing.T) {
+		originalErr := errors.New("not found")
+		failure := maybe.Failed[int](originalErr)
+
+		result := failure.MapIfFailed(func(err error) (int, error) {
+			if err.Error() == "not found" {
+				return 42, nil
+			}
+			return 0, err
+		})
+
+		some, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("MapIfFailed should return Some when recovery succeeds")
+		}
+		value, _ := some.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+
+	t.Run("returns new Failure when recovery returns error", func(t *testing.T) {
+		originalErr := errors.New("original error")
+		newErr := errors.New("new error")
+		failure := maybe.Failed[int](originalErr)
+
+		result := failure.MapIfFailed(func(err error) (int, error) {
+			return 0, newErr
+		})
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfFailed should return Failure when recovery returns error")
+		}
+		_, err := resultFailure.Get()
+		if err != newErr {
+			t.Errorf("expected %v, got %v", newErr, err)
+		}
+	})
+
+	t.Run("transforms error by wrapping with context", func(t *testing.T) {
+		dbErr := errors.New("connection timeout")
+		failure := maybe.Failed[int](dbErr)
+
+		result := failure.MapIfFailed(func(err error) (int, error) {
+			return 0, errors.New("database error: " + err.Error())
+		})
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfFailed should return Failure for error transformation")
+		}
+		_, err := resultFailure.Get()
+		if err == nil || err.Error() != "database error: connection timeout" {
+			t.Errorf("expected wrapped error, got %v", err)
+		}
+	})
+
+	t.Run("receives original error in function", func(t *testing.T) {
+		originalErr := errors.New("test error")
+		failure := maybe.Failed[int](originalErr)
+		var receivedErr error
+
+		failure.MapIfFailed(func(err error) (int, error) {
+			receivedErr = err
+			return 0, nil
+		})
+
+		if receivedErr != originalErr {
+			t.Errorf("expected to receive %v, got %v", originalErr, receivedErr)
+		}
+	})
+
+	t.Run("catches panic in recovery function", func(t *testing.T) {
+		failure := maybe.Failed[int](errors.New("error"))
+
+		result := failure.MapIfFailed(func(err error) (int, error) {
+			panic("recovery panic")
+		})
+
+		resultFailure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfFailed should return Failure when recovery panics")
+		}
+		_, err := resultFailure.Get()
+		if err == nil {
+			t.Error("expected error from panic")
+		}
+	})
+}

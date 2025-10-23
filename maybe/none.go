@@ -19,6 +19,45 @@ func (n None[T]) Map(fn func(T) T) Maybe[T] {
 	return n
 }
 
+// MapIfEmpty executes the function and returns the result wrapped in a Maybe.
+// This supports both recovery (returning a value) and error transformation (returning an error).
+// The function is executed with panic recovery provided by Try.
+//
+// Example:
+//
+//	// Recovery: Provide default value
+//	none := Empty[int]()
+//	result := none.MapIfEmpty(func() (int, error) {
+//	    return 42, nil
+//	}) // Just(42)
+//
+//	// Error transformation: Convert None to Failure (alternative to FailIfEmpty)
+//	result := Empty[int]().MapIfEmpty(func() (int, error) {
+//	    return 0, errors.New("value required")
+//	}) // Failed[int]("value required")
+//
+//	// Recovery that might fail
+//	result := Empty[string]().MapIfEmpty(func() (string, error) {
+//	    data, err := fetchDefault()
+//	    return data, err
+//	}) // Just(data) or Failed[string](err)
+func (n None[T]) MapIfEmpty(fn func() (T, error)) Maybe[T] {
+	return Try(fn)
+}
+
+// MapIfFailed returns the original None unchanged since there is no error to recover from.
+// The recovery function is not called because None represents absence, not failure.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	result := none.MapIfFailed(func(err error) (int, error) {
+//	    return 100, nil  // This function is never called
+//	}) // Empty[int]()
+func (n None[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T] {
+	return n
+}
+
 // FlatMap ignores the given function and returns None.
 // Since None has no value, there's nothing to transform.
 // The type is preserved, returning None[T].

@@ -24,6 +24,32 @@ func (s Some[T]) Map(fn func(T) T) (result Maybe[T]) {
 	})
 }
 
+// MapIfEmpty returns the original Some unchanged since the value is present.
+// The recovery function is not called because there is no empty state to recover from.
+//
+// Example:
+//
+//	some := Just(42)
+//	result := some.MapIfEmpty(func() (int, error) {
+//	    return 100, nil  // This function is never called
+//	}) // Just(42)
+func (s Some[T]) MapIfEmpty(fn func() (T, error)) Maybe[T] {
+	return s
+}
+
+// MapIfFailed returns the original Some unchanged since there is no error state.
+// The recovery function is not called because there is no failure to recover from.
+//
+// Example:
+//
+//	some := Just(42)
+//	result := some.MapIfFailed(func(err error) (int, error) {
+//	    return 100, nil  // This function is never called
+//	}) // Just(42)
+func (s Some[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T] {
+	return s
+}
+
 // FlatMap applies the given function to the value inside Some.
 // Unlike Map, the function is expected to return a Maybe[T], which prevents nested Maybe structures.
 // The function must return Maybe[T] (for type conversion, use the helper FlatMap function).

@@ -38,6 +38,102 @@ type Maybe[T any] interface {
 	//	result := Just(10).Map(func(x int) int { return x * 2 })  // Just(20)
 	Map(fn func(T) T) Maybe[T]
 
+	// MapIfEmpty provides both recovery and error transformation mechanisms for None states.
+	// This method allows converting an empty Maybe into either a Some (recovery) or a Failure (error transformation).
+	// The function returns (T, error) to support both recovery and error transformation patterns.
+	//
+	// Behavior:
+	//   - If Maybe is Some: returns the original Some unchanged (function not called)
+	//   - If Maybe is None: executes the function and wraps the result in a Maybe
+	//   - If Maybe is Failure: returns the original Failure unchanged (function not called)
+	//   - If the function returns (value, nil): returns Just(value) - recovery pattern
+	//   - If the function returns (_, error): returns Failed(error) - error transformation pattern
+	//   - If the function panics: catches the panic and returns Failure
+	//
+	// Use Cases:
+	//   1. Recovery: Provide default values or fallback logic when a value is absent
+	//   2. Error Transformation: Convert None to Failure with custom error (alternative to FailIfEmpty)
+	//
+	// Example:
+	//
+	//	// Use Case 1: Recovery - Provide a default value for None
+	//	result := Empty[int]().MapIfEmpty(func() (int, error) {
+	//	    return 42, nil
+	//	}) // Just(42)
+	//
+	//	// Use Case 2: Error Transformation - Convert None to Failure (alternative to FailIfEmpty)
+	//	result := Empty[int]().MapIfEmpty(func() (int, error) {
+	//	    return 0, errors.New("value required")
+	//	}) // Failed[int]("value required")
+	//
+	//	// Some remains unchanged
+	//	result := Just(10).MapIfEmpty(func() (int, error) {
+	//	    return 42, nil
+	//	}) // Just(10) - function not called
+	//
+	//	// Failure remains unchanged
+	//	result := Failed[int](err).MapIfEmpty(func() (int, error) {
+	//	    return 42, nil
+	//	}) // Failed[int](err) - function not called
+	//
+	//	// Recovery with potential failure
+	//	result := Empty[string]().MapIfEmpty(func() (string, error) {
+	//	    data, err := os.ReadFile("default.txt")
+	//	    if err != nil {
+	//	        return "", err
+	//	    }
+	//	    return string(data), nil
+	//	}) // Just(fileContent) or Failed[string](err)
+	MapIfEmpty(fn func() (T, error)) Maybe[T]
+
+	// MapIfFailed provides both error recovery and error transformation mechanisms for Failure states.
+	// This method allows converting a failed Maybe into either a Some (recovery) or a different Failure (error transformation).
+	// The function receives the original error and returns (T, error) to support both recovery and transformation patterns.
+	//
+	// Behavior:
+	//   - If Maybe is Some: returns the original Some unchanged (function not called)
+	//   - If Maybe is None: returns the original None unchanged (function not called)
+	//   - If Maybe is Failure: executes the function with the error and wraps the result in a Maybe
+	//   - If the function returns (value, nil): returns Just(value) - recovery pattern
+	//   - If the function returns (_, error): returns Failed(error) - error transformation pattern
+	//   - If the function panics: catches the panic and returns Failure
+	//
+	// Use Cases:
+	//   1. Error Recovery: Convert Failure to Some by providing fallback values or retry logic
+	//   2. Error Transformation: Wrap, enrich, or convert errors (e.g., DB errors → domain errors)
+	//
+	// Example:
+	//
+	//	// Use Case 1: Recovery - Recover from specific errors
+	//	result := Failed[int](errors.New("not found")).MapIfFailed(func(err error) (int, error) {
+	//	    if errors.Is(err, ErrNotFound) {
+	//	        return 0, nil  // Provide default value
+	//	    }
+	//	    return 0, err  // Propagate other errors
+	//	}) // Just(0)
+	//
+	//	// Use Case 2: Error Transformation - Wrap or enrich errors
+	//	result := Failed[int](dbErr).MapIfFailed(func(err error) (int, error) {
+	//	    return 0, fmt.Errorf("domain error: %w", err)
+	//	}) // Failed[int](wrapped error)
+	//
+	//	// Some remains unchanged
+	//	result := Just(10).MapIfFailed(func(err error) (int, error) {
+	//	    return 42, nil
+	//	}) // Just(10) - function not called
+	//
+	//	// None remains unchanged
+	//	result := Empty[int]().MapIfFailed(func(err error) (int, error) {
+	//	    return 42, nil
+	//	}) // Empty[int]() - function not called
+	//
+	//	// Recovery with retry logic
+	//	result := fetchData().MapIfFailed(func(err error) (Data, error) {
+	//	    log.Printf("First attempt failed: %v, retrying...", err)
+	//	    return fetchDataFromCache()
+	//	}) // Try cache if fetch fails
+	MapIfFailed(fn func(error) (T, error)) Maybe[T]
+
 	// FlatMap is similar to Map but expects the function to return a Maybe[T].
 	// This prevents nested Maybe structures and is useful for chaining operations that might fail.
 	// The function must return Maybe[T] (same type).

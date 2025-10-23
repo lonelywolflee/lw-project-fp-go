@@ -788,3 +788,96 @@ func TestNone_FailIfEmpty(t *testing.T) {
 		}
 	})
 }
+
+func TestNone_MapIfEmpty(t *testing.T) {
+	t.Run("executes recovery function and returns Some", func(t *testing.T) {
+		none := maybe.Empty[int]()
+
+		result := none.MapIfEmpty(func() (int, error) {
+			return 42, nil
+		})
+
+		some, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("MapIfEmpty should return Some when recovery succeeds")
+		}
+		value, _ := some.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+
+	t.Run("returns Failure when recovery function returns error", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		testErr := errors.New("recovery failed")
+
+		result := none.MapIfEmpty(func() (int, error) {
+			return 0, testErr
+		})
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfEmpty should return Failure when recovery returns error")
+		}
+		_, err := failure.Get()
+		if err != testErr {
+			t.Errorf("expected error %v, got %v", testErr, err)
+		}
+	})
+
+	t.Run("transforms None to Failure with custom error", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		customErr := errors.New("value required")
+
+		result := none.MapIfEmpty(func() (int, error) {
+			return 0, customErr
+		})
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfEmpty should return Failure for error transformation")
+		}
+		_, err := failure.Get()
+		if err != customErr {
+			t.Errorf("expected error %v, got %v", customErr, err)
+		}
+	})
+
+	t.Run("catches panic in recovery function", func(t *testing.T) {
+		none := maybe.Empty[int]()
+
+		result := none.MapIfEmpty(func() (int, error) {
+			panic("something went wrong")
+		})
+
+		failure, ok := result.(maybe.Failure[int])
+		if !ok {
+			t.Fatal("MapIfEmpty should return Failure when recovery panics")
+		}
+		_, err := failure.Get()
+		if err == nil {
+			t.Error("expected error from panic")
+		}
+	})
+}
+
+func TestNone_MapIfFailed(t *testing.T) {
+	t.Run("returns original None unchanged", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		called := false
+
+		result := none.MapIfFailed(func(err error) (int, error) {
+			called = true
+			return 100, nil
+		})
+
+		if called {
+			t.Error("MapIfFailed should not call function for None")
+		}
+
+		_, ok := result.(maybe.None[int])
+		if !ok {
+			t.Fatal("MapIfFailed should return None for None")
+		}
+	})
+}

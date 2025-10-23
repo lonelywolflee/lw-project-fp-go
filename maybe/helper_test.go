@@ -793,3 +793,95 @@ func TestFlatMap(t *testing.T) {
 		}
 	})
 }
+
+func TestMapIfEmpty_Integration(t *testing.T) {
+	t.Run("can chain with other operations", func(t *testing.T) {
+		result := maybe.Empty[int]().
+			MapIfEmpty(func() (int, error) {
+				return 10, nil
+			}).
+			Map(func(x int) int {
+				return x * 2
+			})
+
+		some, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("should return Some after chaining")
+		}
+		value, _ := some.Get()
+		if value != 20 {
+			t.Errorf("expected 20, got %d", value)
+		}
+	})
+
+	t.Run("works in railway-oriented programming", func(t *testing.T) {
+		result := maybe.Empty[string]().
+			MapIfEmpty(func() (string, error) {
+				return "default", nil
+			}).
+			Filter(func(s string) bool {
+				return len(s) > 0
+			})
+
+		some, ok := result.(maybe.Some[string])
+		if !ok {
+			t.Fatal("should return Some")
+		}
+		value, _ := some.Get()
+		if value != "default" {
+			t.Errorf("expected 'default', got %s", value)
+		}
+	})
+}
+
+func TestMapIfFailed_Integration(t *testing.T) {
+	t.Run("can chain with other operations", func(t *testing.T) {
+		result := maybe.Failed[int](errors.New("error")).
+			MapIfFailed(func(err error) (int, error) {
+				return 10, nil
+			}).
+			Map(func(x int) int {
+				return x * 2
+			})
+
+		some, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("should return Some after recovery")
+		}
+		value, _ := some.Get()
+		if value != 20 {
+			t.Errorf("expected 20, got %d", value)
+		}
+	})
+
+	t.Run("supports conditional recovery", func(t *testing.T) {
+		var ErrNotFound = errors.New("not found")
+		var ErrPermission = errors.New("permission denied")
+
+		// Recoverable error
+		result1 := maybe.Failed[int](ErrNotFound).
+			MapIfFailed(func(err error) (int, error) {
+				if errors.Is(err, ErrNotFound) {
+					return 0, nil
+				}
+				return 0, err
+			})
+
+		if _, ok := result1.(maybe.Some[int]); !ok {
+			t.Error("should recover from ErrNotFound")
+		}
+
+		// Non-recoverable error
+		result2 := maybe.Failed[int](ErrPermission).
+			MapIfFailed(func(err error) (int, error) {
+				if errors.Is(err, ErrNotFound) {
+					return 0, nil
+				}
+				return 0, err
+			})
+
+		if _, ok := result2.(maybe.Failure[int]); !ok {
+			t.Error("should not recover from ErrPermission")
+		}
+	})
+}

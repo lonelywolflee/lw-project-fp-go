@@ -697,6 +697,142 @@ result := fetchConfig().
 // First error in chain is propagated
 ```
 
+### Error Recovery and Transformation with MapIfEmpty and MapIfFailed
+
+These methods provide dual-purpose functionality: **recovery** (converting to Some) and **error transformation** (converting to/modifying Failure).
+
+**Basic patterns:**
+
+```go
+// MapIfEmpty Pattern 1: Recovery - convert None to Some
+result := maybe.Empty[int]().MapIfEmpty(func() (int, error) {
+    return 42, nil  // Provide default value
+}) // Just(42)
+
+// MapIfEmpty Pattern 2: Error Transformation - convert None to Failure (alternative to FailIfEmpty)
+result := maybe.Empty[int]().MapIfEmpty(func() (int, error) {
+    return 0, errors.New("value required")
+}) // Failed[int]("value required")
+
+// MapIfFailed Pattern 1: Recovery - convert Failure to Some
+result := maybe.Failed[int](errors.New("not found")).MapIfFailed(func(err error) (int, error) {
+    if errors.Is(err, ErrNotFound) {
+        return 0, nil  // Recover from specific error
+    }
+    return 0, err  // Propagate other errors
+}) // Just(0)
+
+// MapIfFailed Pattern 2: Error Transformation - wrap or enrich errors
+result := maybe.Failed[int](dbErr).MapIfFailed(func(err error) (int, error) {
+    return 0, fmt.Errorf("user service error: %w", err)
+}) // Failed[int](wrapped error)
+
+// Some remains unchanged for both
+result := maybe.Just(10).MapIfEmpty(func() (int, error) {
+    return 42, nil  // Never called
+}) // Just(10)
+
+result := maybe.Just(10).MapIfFailed(func(err error) (int, error) {
+    return 42, nil  // Never called
+}) // Just(10)
+```
+
+**Practical examples:**
+
+```go
+// Example 1: Fallback chain with MapIfEmpty
+config := loadPrimaryConfig().
+    MapIfEmpty(func() (Config, error) {
+        log.Info("Primary config not found, loading backup")
+        return loadBackupConfig()
+    }).
+    MapIfEmpty(func() (Config, error) {
+        log.Info("Backup config not found, using defaults")
+        return DefaultConfig, nil
+    })
+
+// Example 2: Retry logic with MapIfFailed
+data := fetchFromAPI().
+    MapIfFailed(func(err error) (Data, error) {
+        log.Printf("API failed: %v, trying cache", err)
+        return fetchFromCache()
+    }).
+    MapIfFailed(func(err error) (Data, error) {
+        log.Printf("Cache failed: %v, using stale data", err)
+        return fetchStaleData()
+    })
+
+// Example 3: Error-specific recovery
+user := getUserByID(id).
+    MapIfFailed(func(err error) (User, error) {
+        if errors.Is(err, ErrNotFound) {
+            // Create default user for not found
+            return AnonymousUser, nil
+        }
+        if errors.Is(err, ErrPermission) {
+            // Log security event but don't recover
+            log.Security("Permission denied", id)
+            return User{}, err
+        }
+        // Propagate unexpected errors
+        return User{}, err
+    })
+
+// Example 4: Combining both recovery methods
+result := processInput(input).
+    MapIfEmpty(func() (Result, error) {
+        // Provide default when input processing returns nothing
+        return DefaultResult, nil
+    }).
+    MapIfFailed(func(err error) (Result, error) {
+        // Try to recover from processing errors
+        if errors.Is(err, ErrInvalidFormat) {
+            return sanitizeAndRetry(input)
+        }
+        return Result{}, err
+    })
+
+// Example 5: Error transformation - MapIfEmpty as FailIfEmpty alternative
+user := findUserInCache(id).
+    MapIfEmpty(func() (User, error) {
+        // Convert None to domain-specific error
+        return User{}, fmt.Errorf("user %d not in cache", id)
+    })
+// Equivalent to: FailIfEmpty(func() error { return fmt.Errorf("user %d not in cache", id) })
+
+// Example 6: Error transformation - enriching errors with context
+result := databaseQuery(sql).
+    MapIfFailed(func(err error) (Data, error) {
+        // Add context to database errors
+        return Data{}, fmt.Errorf("query failed for table 'users': %w", err)
+    })
+
+// Example 7: Multi-layer error transformation
+payment := processPayment(order).
+    MapIfFailed(func(err error) (Payment, error) {
+        // Layer 1: Convert infrastructure errors to domain errors
+        if errors.Is(err, sql.ErrNoRows) {
+            return Payment{}, ErrPaymentNotFound
+        }
+        if errors.Is(err, context.DeadlineExceeded) {
+            return Payment{}, ErrPaymentTimeout
+        }
+        return Payment{}, fmt.Errorf("payment processing error: %w", err)
+    })
+```
+
+**When to use:**
+
+**MapIfEmpty:**
+- **Recovery**: Provide default values or fallback logic for empty states
+- **Error Transformation**: Convert None to Failure with custom error (alternative to FailIfEmpty)
+
+**MapIfFailed:**
+- **Recovery**: Convert Failure to Some by providing fallback values or retry logic
+- **Error Transformation**: Wrap, enrich, or convert errors (e.g., DB errors → domain errors)
+
+**Both:** Can be chained together for comprehensive error handling, recovery, and transformation
+
 ### Pattern Matching with MatchThen
 
 ```go

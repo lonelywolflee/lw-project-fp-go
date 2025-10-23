@@ -990,3 +990,53 @@ func TestSome_FailIfEmpty(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_MapIfEmpty(t *testing.T) {
+	t.Run("returns original Some unchanged", func(t *testing.T) {
+		some := maybe.Just(42)
+		called := false
+
+		result := some.MapIfEmpty(func() (int, error) {
+			called = true
+			return 100, nil
+		})
+
+		if called {
+			t.Error("MapIfEmpty should not call function for Some")
+		}
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("MapIfEmpty should return Some for Some")
+		}
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+}
+
+func TestSome_MapIfFailed(t *testing.T) {
+	t.Run("returns original Some unchanged", func(t *testing.T) {
+		some := maybe.Just(42)
+		called := false
+
+		result := some.MapIfFailed(func(err error) (int, error) {
+			called = true
+			return 100, nil
+		})
+
+		if called {
+			t.Error("MapIfFailed should not call function for Some")
+		}
+
+		resultSome, ok := result.(maybe.Some[int])
+		if !ok {
+			t.Fatal("MapIfFailed should return Some for Some")
+		}
+		value, _ := resultSome.Get()
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+}

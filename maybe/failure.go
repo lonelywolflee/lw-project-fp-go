@@ -21,6 +21,50 @@ func (f Failure[T]) Map(fn func(T) T) Maybe[T] {
 	return f
 }
 
+// MapIfEmpty returns the original Failure unchanged since there is no empty state.
+// The recovery function is not called because Failure represents an error, not absence.
+//
+// Example:
+//
+//	failure := Failed[int](errors.New("error"))
+//	result := failure.MapIfEmpty(func() (int, error) {
+//	    return 42, nil  // This function is never called
+//	}) // Failed[int](error)
+func (f Failure[T]) MapIfEmpty(fn func() (T, error)) Maybe[T] {
+	return f
+}
+
+// MapIfFailed executes the function with the original error and returns the result.
+// This supports both error recovery (returning a value) and error transformation (returning a new error).
+// The function is executed with panic recovery provided by Try.
+//
+// Example:
+//
+//	// Recovery: Convert Failure to Some
+//	failure := Failed[int](errors.New("not found"))
+//	result := failure.MapIfFailed(func(err error) (int, error) {
+//	    if errors.Is(err, ErrNotFound) {
+//	        return 0, nil  // Recover with default value
+//	    }
+//	    return 0, err  // Propagate other errors
+//	}) // Just(0)
+//
+//	// Error transformation: Wrap or enrich errors
+//	result := Failed[int](dbErr).MapIfFailed(func(err error) (int, error) {
+//	    return 0, fmt.Errorf("user service error: %w", err)
+//	}) // Failed[int](wrapped error)
+//
+//	// Retry logic
+//	result := fetchData().MapIfFailed(func(err error) (Data, error) {
+//	    log.Printf("Retrying after error: %v", err)
+//	    return fetchDataFromBackup()
+//	}) // Tries backup source on failure
+func (f Failure[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T] {
+	return Try(func() (T, error) {
+		return fn(f.e)
+	})
+}
+
 // FlatMap ignores the given function and propagates the error.
 // Since Failure represents an error state, no transformation is applied.
 // The error is preserved, and the type is kept as Failure[T].
