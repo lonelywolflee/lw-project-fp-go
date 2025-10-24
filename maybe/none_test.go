@@ -10,7 +10,7 @@ import (
 func TestNone_Get(t *testing.T) {
 	t.Run("returns zero value and nil error for int", func(t *testing.T) {
 		none := maybe.Empty[int]()
-		value, err := none.Get()
+		value, _, err := none.Get()
 		if err != nil {
 			t.Errorf("None.Get() should return nil error, got %v", err)
 		}
@@ -21,7 +21,7 @@ func TestNone_Get(t *testing.T) {
 
 	t.Run("returns zero value and nil error for string", func(t *testing.T) {
 		none := maybe.Empty[string]()
-		value, err := none.Get()
+		value, _, err := none.Get()
 		if err != nil {
 			t.Error("None.Get() should return nil error")
 		}
@@ -32,7 +32,7 @@ func TestNone_Get(t *testing.T) {
 
 	t.Run("returns zero value for bool", func(t *testing.T) {
 		none := maybe.Empty[bool]()
-		value, err := none.Get()
+		value, _, err := none.Get()
 		if err != nil {
 			t.Errorf("None.Get() should return nil error, got %v", err)
 		}
@@ -43,7 +43,7 @@ func TestNone_Get(t *testing.T) {
 
 	t.Run("returns nil and nil error for pointer type", func(t *testing.T) {
 		none := maybe.Empty[*int]()
-		value, err := none.Get()
+		value, _, err := none.Get()
 		if err != nil {
 			t.Errorf("None.Get() should return nil error, got %v", err)
 		}
@@ -58,7 +58,7 @@ func TestNone_Get(t *testing.T) {
 			Age  int
 		}
 		none := maybe.Empty[User]()
-		value, err := none.Get()
+		value, _, err := none.Get()
 		if err != nil {
 			t.Errorf("None.Get() should return nil error, got %v", err)
 		}
@@ -524,7 +524,7 @@ func TestNone_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when noneFn panics")
 		}
-		_, gotErr := failure.Get()
+		_, _, gotErr := failure.Get()
 		if gotErr.Error() != "noneFn panic" {
 			t.Errorf("expected panic message, got %s", gotErr.Error())
 		}
@@ -544,7 +544,7 @@ func TestNone_MatchThen(t *testing.T) {
 		if !ok {
 			t.Fatal("MatchThen should return Failure when noneFn panics")
 		}
-		_, gotErr := failure.Get()
+		_, _, gotErr := failure.Get()
 		if gotErr != testErr {
 			t.Errorf("expected %v, got %v", testErr, gotErr)
 		}
@@ -644,7 +644,7 @@ func TestNone_MapIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("MapIfEmpty should return Some when recovery succeeds")
 		}
-		value, _ := some.Get()
+		value, _, _ := some.Get()
 		if value != 42 {
 			t.Errorf("expected 42, got %d", value)
 		}
@@ -662,7 +662,7 @@ func TestNone_MapIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("MapIfEmpty should return Failure when recovery returns error")
 		}
-		_, err := failure.Get()
+		_, _, err := failure.Get()
 		if err != testErr {
 			t.Errorf("expected error %v, got %v", testErr, err)
 		}
@@ -680,7 +680,7 @@ func TestNone_MapIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("MapIfEmpty should return Failure for error transformation")
 		}
-		_, err := failure.Get()
+		_, _, err := failure.Get()
 		if err != customErr {
 			t.Errorf("expected error %v, got %v", customErr, err)
 		}
@@ -697,7 +697,7 @@ func TestNone_MapIfEmpty(t *testing.T) {
 		if !ok {
 			t.Fatal("MapIfEmpty should return Failure when recovery panics")
 		}
-		_, err := failure.Get()
+		_, _, err := failure.Get()
 		if err == nil {
 			t.Error("expected error from panic")
 		}

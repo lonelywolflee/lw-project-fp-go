@@ -94,15 +94,15 @@ func (n None[T]) Then(fn func(T)) Maybe[T] {
 	return n
 }
 
-// Get returns nil, indicating the absence of a value.
+// Get returns zero value with presence flag false and no error, indicating the absence of a value.
 //
 // Example:
 //
 //	none := Empty[int]()
-//	value := none.Get() // returns nil
-func (n None[T]) Get() (T, error) {
+//	value, ok, err := none.Get() // returns 0, false, nil
+func (n None[T]) Get() (T, bool, error) {
 	var zero T
-	return zero, nil
+	return zero, false, nil
 }
 
 // OrElseGet calls the provided function and returns its result.

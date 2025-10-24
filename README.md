@@ -119,8 +119,8 @@ func main() {
         Map(func(x int) int { return x + 5 })       // 20 → 25
 
     // Extract the value
-    value, err := result.Get()
-    if err == nil {
+    value, ok, err := result.Get()
+    if ok && err == nil {
         fmt.Println(value) // Output: 25
     }
 }
@@ -143,7 +143,7 @@ func main() {
     // Convert int to string using helper function
     result := maybe.Map(maybe.Just(42), strconv.Itoa)
 
-    value, _ := result.Get()
+    value, _, _ := result.Get()
     fmt.Println(value) // Output: "42"
 
     // Can also use inline functions
@@ -151,7 +151,7 @@ func main() {
         return fmt.Sprintf("Score: %d", x)
     })
 
-    value2, _ := result2.Get()
+    value2, _, _ := result2.Get()
     fmt.Println(value2) // Output: "Score: 100"
 }
 ```
@@ -183,7 +183,7 @@ func main() {
         Filter(func(x int) bool { return x > 0 }).
         Map(func(x int) int { return x * 2 })
 
-    value, _ := parsed.Get()
+    value, _, _ := parsed.Get()
     fmt.Println(value) // Output: 200
 
     // Try: Execute function with both error AND panic handling
@@ -202,7 +202,7 @@ func main() {
         return x * 2
     })
 
-    value2, _ := safeParse.Get()
+    value2, _, _ := safeParse.Get()
     fmt.Println(value2) // Output: 84
 }
 ```
@@ -240,7 +240,7 @@ func main() {
         Map(func(age int) int { return age * 2 }). // Executes
         Map(func(age int) int { return age + 10 }) // Executes
 
-    value, _ := result.Get()
+    value, _, _ := result.Get()
     fmt.Println(value) // Output: 60
 
     // Error case - operations are skipped after error
@@ -248,7 +248,7 @@ func main() {
         Map(func(age int) int { return age * 2 }). // Skipped
         Map(func(age int) int { return age + 10 }) // Skipped
 
-    _, err := result2.Get()
+    _, _, err := result2.Get()
     fmt.Println(err) // Output: age cannot be negative
 }
 ```
@@ -304,19 +304,19 @@ func validateUser(name, email string, age int) maybe.Maybe[User] {
 func main() {
     // Valid user
     result := validateUser("John Doe", "john@example.com", 30)
-    if user, err := result.Get(); err == nil {
+    if user, ok, err := result.Get(); ok && err == nil {
         fmt.Printf("Valid user: %+v\n", user)
     }
 
     // Invalid user - empty name
     result2 := validateUser("", "john@example.com", 30)
-    if _, err := result2.Get(); err != nil {
+    if _, _, err := result2.Get(); err != nil {
         fmt.Printf("Error: %v\n", err) // Output: Error: name is required
     }
 
     // Invalid user - bad email
     result3 := validateUser("John", "invalid-email", 30)
-    if _, err := result3.Get(); err != nil {
+    if _, _, err := result3.Get(); err != nil {
         fmt.Printf("Error: %v\n", err) // Output: Error: invalid email
     }
 }
@@ -357,12 +357,12 @@ func main() {
 
     // Invalid input - not a number
     result2 := parseAndValidate("abc")
-    _, err := result2.Get()
+    _, _, err := result2.Get()
     fmt.Println(err) // Output: strconv.Atoi: parsing "abc": invalid syntax
 
     // Invalid input - negative
     result3 := parseAndValidate("-5")
-    _, err2 := result3.Get()
+    _, _, err2 := result3.Get()
     fmt.Println(err2) // Output: value must be positive
 }
 ```
@@ -392,7 +392,7 @@ func processData(data string) maybe.Maybe[string] {
 
 func main() {
     result := processData("hello")
-    value, _ := result.Get()
+    value, _, _ := result.Get()
     fmt.Println(value) // Output: HELLO
     // Logs:
     // Received: hello
@@ -515,7 +515,7 @@ result := maybe.Just(10).
     })
 
 // result is a Failure containing the error
-_, err := result.Get()
+_, _, err := result.Get()
 if err != nil {
     fmt.Println(err) // "value too large"
 }
@@ -592,25 +592,34 @@ result := maybe.Do(func() maybe.Maybe[int] {
 ### Extracting Values with Get
 
 ```go
-// Get provides a Go-idiomatic way to extract values with error handling
-value, err := maybe.Just(42).Get()
-if err != nil {
-    // Handle error
+// Get provides a Go-idiomatic way to extract values with presence checking and error handling
+// Returns: (value, ok, error)
+// - ok=true: value is present (Some state)
+// - ok=false: no value (None or Failure state)
+value, ok, err := maybe.Just(42).Get()
+if ok && err == nil {
+    fmt.Println(value) // 42
 }
-fmt.Println(value) // 42
 
-// For None: returns zero value and nil error
-value, err := maybe.Empty[int]().Get()
-// value = 0, err = nil
+// For None: returns zero value, false, and nil error
+value, ok, err := maybe.Empty[int]().Get()
+// value = 0, ok = false, err = nil
 
-// For Failure: returns zero value and the error
-value, err := maybe.Failed[int](errors.New("failed")).Get()
-// value = 0, err = error("failed")
+// For Failure: returns zero value, false, and the error
+value, ok, err := maybe.Failed[int](errors.New("failed")).Get()
+// value = 0, ok = false, err = error("failed")
 
 // Practical example: database query
-func findUser(id int) (User, error) {
+func findUser(id int) (User, bool, error) {
     result := queryDatabase(id) // returns Maybe[User]
     return result.Get()
+}
+
+// Or if you only care about the value and error:
+func findUserSimple(id int) (User, error) {
+    result := queryDatabase(id) // returns Maybe[User]
+    user, _, err := result.Get()
+    return user, err
 }
 ```
 
@@ -848,7 +857,7 @@ type Maybe[T any] interface {
     Then(fn func(T)) Maybe[T]
 
     // Value extraction
-    Get() (T, error)
+    Get() (T, bool, error)
     OrElseGet(fn func(error) T) T
     OrElseDefault(v T) T
 
@@ -867,7 +876,7 @@ func (s Some[T]) Map(fn func(T) T) Maybe[T]
 func (s Some[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T]
 func (s Some[T]) Filter(fn func(T) bool) Maybe[T]
 func (s Some[T]) Then(fn func(T)) Maybe[T]
-func (s Some[T]) Get() (T, error)
+func (s Some[T]) Get() (T, bool, error)
 func (s Some[T]) OrElseGet(fn func(error) T) T
 func (s Some[T]) OrElseDefault(v T) T
 func (s Some[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
@@ -883,7 +892,7 @@ func (n None[T]) Map(fn func(T) T) Maybe[T]
 func (n None[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T]
 func (n None[T]) Filter(fn func(T) bool) Maybe[T]
 func (n None[T]) Then(fn func(T)) Maybe[T]
-func (n None[T]) Get() (T, error)
+func (n None[T]) Get() (T, bool, error)
 func (n None[T]) OrElseGet(fn func(error) T) T
 func (n None[T]) OrElseDefault(v T) T
 func (n None[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
@@ -899,7 +908,7 @@ func (f Failure[T]) Map(fn func(T) T) Maybe[T]
 func (f Failure[T]) FlatMap(fn func(T) Maybe[T]) Maybe[T]
 func (f Failure[T]) Filter(fn func(T) bool) Maybe[T]
 func (f Failure[T]) Then(fn func(T)) Maybe[T]
-func (f Failure[T]) Get() (T, error)
+func (f Failure[T]) Get() (T, bool, error)
 func (f Failure[T]) OrElseGet(fn func(error) T) T
 func (f Failure[T]) OrElseDefault(v T) T
 func (f Failure[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
@@ -934,7 +943,7 @@ func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(erro
 
 ```go
 func handleResult(m maybe.Maybe[int]) string {
-    value, err := m.Get()
+    value, ok, err := m.Get()
     if err != nil {
         return fmt.Sprintf("Error: %s", err)
     }
@@ -947,6 +956,18 @@ func handleResult(m maybe.Maybe[int]) string {
     default:
         return "Unknown state"
     }
+}
+
+// Or use the ok flag for simpler logic:
+func handleResultSimple(m maybe.Maybe[int]) string {
+    value, ok, err := m.Get()
+    if err != nil {
+        return fmt.Sprintf("Error: %s", err)
+    }
+    if ok {
+        return fmt.Sprintf("Got value: %d", value)
+    }
+    return "No value"
 }
 ```
 

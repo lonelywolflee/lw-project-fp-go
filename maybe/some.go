@@ -106,14 +106,14 @@ func (s Some[T]) Then(fn func(T)) Maybe[T] {
 	})
 }
 
-// Get returns the value inside Some.
+// Get returns the value inside Some with presence flag true and no error.
 //
 // Example:
 //
 //	some := Just(5)
-//	value := some.Get() // returns 5
-func (s Some[T]) Get() (T, error) {
-	return s.v, nil
+//	value, ok, err := some.Get() // returns 5, true, nil
+func (s Some[T]) Get() (T, bool, error) {
+	return s.v, true, nil
 }
 
 // OrElseGet returns the value inside Some.

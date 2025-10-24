@@ -178,18 +178,30 @@ type Maybe[T any] interface {
 	//	result := Empty[int]().Then(func(x int) { fmt.Println(x) }) // Empty[int](), nothing printed
 	Then(fn func(T)) Maybe[T]
 
-	// Get returns the value and error from Maybe.
-	// For Some: returns (value, nil)
-	// For None: returns (zero value, nil)
-	// For Failure: returns (zero value, error)
-	// This provides a Go-idiomatic way to extract values with error handling.
+	// Get returns the value, presence flag, and error from Maybe.
+	// The boolean indicates whether a value is present (true for Some, false for None/Failure).
+	// This provides a Go-idiomatic way to distinguish between empty and error states.
+	//
+	// Return values:
+	//   - Some: returns (value, true, nil) - has value, no error
+	//   - None: returns (zero, false, nil) - no value, no error (empty state)
+	//   - Failure: returns (zero, false, error) - no value, has error
 	//
 	// Example:
 	//
-	//	value, err := Just(42).Get()             // value = 42, err = nil
-	//	value, err := Empty[int]().Get()         // value = 0, err = nil
-	//	value, err := Failed[int](someErr).Get() // value = 0, err = someErr
-	Get() (T, error)
+	//	value, ok, err := Just(42).Get()             // value = 42, ok = true, err = nil
+	//	value, ok, err := Empty[int]().Get()         // value = 0, ok = false, err = nil
+	//	value, ok, err := Failed[int](someErr).Get() // value = 0, ok = false, err = someErr
+	//
+	//	// Pattern: Check error first, then presence
+	//	if err != nil {
+	//	    // Handle error case
+	//	} else if !ok {
+	//	    // Handle empty case
+	//	} else {
+	//	    // Use value
+	//	}
+	Get() (T, bool, error)
 
 	// OrElseGet returns the value inside Maybe if it exists (Some case),
 	// otherwise calls the provided function and returns its result (None or Failure case).
