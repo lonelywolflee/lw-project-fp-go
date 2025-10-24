@@ -128,6 +128,17 @@ func (n None[T]) OrElseDefault(v T) T {
 	return v
 }
 
+// OrPanic panics with "empty" message since None has no value to return.
+// This method is useful when absence of a value is considered a programming error.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	value := none.OrPanic() // panics with "empty"
+func (n None[T]) OrPanic() T {
+	panic("empty")
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

@@ -140,6 +140,17 @@ func (s Some[T]) OrElseDefault(v T) T {
 	return s.v
 }
 
+// OrPanic returns the value inside Some.
+// Since Some contains a value, this method never panics and simply returns the wrapped value.
+//
+// Example:
+//
+//	some := Just(42)
+//	value := some.OrPanic() // returns 42, never panics
+func (s Some[T]) OrPanic() T {
+	return s.v
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

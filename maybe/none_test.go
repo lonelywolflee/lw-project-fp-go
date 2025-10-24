@@ -724,3 +724,60 @@ func TestNone_MapIfFailed(t *testing.T) {
 		}
 	})
 }
+
+func TestNone_OrPanic(t *testing.T) {
+	t.Run("panics with empty message", func(t *testing.T) {
+		none := maybe.Empty[int]()
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for None")
+			}
+			if r != "empty" {
+				t.Errorf("expected panic message 'empty', got %v", r)
+			}
+		}()
+
+		none.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+
+	t.Run("panics for different types", func(t *testing.T) {
+		none := maybe.Empty[string]()
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for None")
+			}
+			if r != "empty" {
+				t.Errorf("expected panic message 'empty', got %v", r)
+			}
+		}()
+
+		none.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+
+	t.Run("panics for complex types", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+		none := maybe.Empty[Config]()
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for None")
+			}
+			if r != "empty" {
+				t.Errorf("expected panic message 'empty', got %v", r)
+			}
+		}()
+
+		none.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+}

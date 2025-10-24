@@ -141,6 +141,17 @@ func (f Failure[T]) OrElseDefault(v T) T {
 	return v
 }
 
+// OrPanic panics with the wrapped error since Failure has no valid value to return.
+// This method is useful when encountering an error is considered unrecoverable.
+//
+// Example:
+//
+//	failure := Failed[int](errors.New("database connection failed"))
+//	value := failure.OrPanic() // panics with the error
+func (f Failure[T]) OrPanic() T {
+	panic(f.e)
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

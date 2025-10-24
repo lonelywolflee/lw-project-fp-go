@@ -889,3 +889,59 @@ func TestSome_MapIfFailed(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_OrPanic(t *testing.T) {
+	t.Run("returns the value without panic", func(t *testing.T) {
+		some := maybe.Just(42)
+		value := some.OrPanic()
+
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+
+	t.Run("returns string value without panic", func(t *testing.T) {
+		some := maybe.Just("hello")
+		value := some.OrPanic()
+
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
+		}
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		some := maybe.Just(0)
+		value := some.OrPanic()
+
+		if value != 0 {
+			t.Errorf("expected 0, got %d", value)
+		}
+	})
+
+	t.Run("works with complex types", func(t *testing.T) {
+		type User struct {
+			Name string
+			Age  int
+		}
+		user := User{Name: "Alice", Age: 30}
+		some := maybe.Just(user)
+		value := some.OrPanic()
+
+		if value.Name != "Alice" || value.Age != 30 {
+			t.Errorf("expected User{Alice, 30}, got %+v", value)
+		}
+	})
+
+	t.Run("works with pointers", func(t *testing.T) {
+		val := 100
+		some := maybe.Just(&val)
+		ptr := some.OrPanic()
+
+		if ptr == nil {
+			t.Fatal("expected non-nil pointer")
+		}
+		if *ptr != 100 {
+			t.Errorf("expected 100, got %d", *ptr)
+		}
+	})
+}

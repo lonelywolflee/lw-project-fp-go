@@ -229,6 +229,44 @@ type Maybe[T any] interface {
 	//	value := Failed[int](err).OrElseDefault(0)  // returns 0
 	OrElseDefault(v T) T
 
+	// OrPanic returns the value inside Maybe if it exists (Some case),
+	// otherwise panics with appropriate information (None or Failure case).
+	// This method is useful when you want to unwrap a Maybe in contexts where failure is unrecoverable
+	// and you prefer to fail fast with a panic rather than handling errors explicitly.
+	//
+	// Behavior:
+	//   - Some: returns the wrapped value
+	//   - None: panics with "empty" message
+	//   - Failure: panics with the wrapped error
+	//
+	// Use Cases:
+	//   - Initialization code where failure should halt the program
+	//   - Test code where failures should be immediately visible
+	//   - Declarative code combined with Do() for panic recovery
+	//   - Situations where a missing value indicates a programming error
+	//
+	// Example:
+	//
+	//	// Simple unwrap - only safe when you're certain the value exists
+	//	config := loadConfig().OrPanic()  // panics if config fails to load
+	//
+	//	// In initialization code
+	//	var db = connectDatabase().OrPanic()  // fail fast if DB unavailable
+	//
+	//	// Combined with Do for controlled panic recovery (declarative style)
+	//	result := Do(func() Maybe[Config] {
+	//	    config := loadPrimaryConfig().OrPanic()      // panics on failure
+	//	    validated := validate(config).OrPanic()      // panics on validation failure
+	//	    return Just(validated)
+	//	}).MapIfFailed(func(err error) (Config, error) {
+	//	    log.Warn("Primary config failed, using default")
+	//	    return DefaultConfig, nil
+	//	})  // Panic is caught by Do and converted to Failure, then recovered
+	//
+	//	// In tests
+	//	user := parseUser(data).OrPanic()  // test fails immediately if parsing fails
+	OrPanic() T
+
 	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
 	// This provides a type-safe way to handle all three Maybe states (Some, None, Failure) with custom behavior.
 	// The function returns the original Maybe unchanged, making it suitable for chaining.

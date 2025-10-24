@@ -589,6 +589,199 @@ result := maybe.Do(func() maybe.Maybe[int] {
 })
 ```
 
+### Declarative Error Handling with Do + OrPanic
+
+Combining `Do()` and `OrPanic()` enables a powerful declarative programming style where you can write straightforward, imperative-looking code with automatic panic recovery and error handling. This pattern reduces nesting depth and makes code more readable.
+
+**Why this pattern is useful:**
+- **Reduces nesting**: No need for nested `if err != nil` checks
+- **Declarative**: Code reads like a sequence of steps
+- **Safe**: Panics are caught and converted to recoverable errors
+- **Composable**: Easy to add error recovery or transformation
+
+```go
+package main
+
+import (
+    "errors"
+    "fmt"
+    "log"
+    "github.com/lonelywolflee/lw-project-fp-go/maybe"
+)
+
+type Config struct {
+    Host string
+    Port int
+}
+
+type Database struct {
+    Connected bool
+}
+
+// Traditional nested error handling (verbose, hard to follow)
+func initAppTraditional() (Config, Database, error) {
+    config, err := loadPrimaryConfig()
+    if err != nil {
+        config, err = loadBackupConfig()
+        if err != nil {
+            return Config{}, Database{}, fmt.Errorf("config load failed: %w", err)
+        }
+    }
+
+    if err := validateConfig(config); err != nil {
+        return Config{}, Database{}, fmt.Errorf("config validation failed: %w", err)
+    }
+
+    db, err := connectDB(config)
+    if err != nil {
+        return Config{}, Database{}, fmt.Errorf("database connection failed: %w", err)
+    }
+
+    return config, db, nil
+}
+
+// Declarative style with Do + OrPanic (clear, flat structure)
+func initAppDeclarative() maybe.Maybe[(Config, Database)] {
+    return maybe.Do(func() maybe.Maybe[(Config, Database)] {
+        // Each OrPanic() panics on failure, Do() catches it and converts to Failure
+        // Code reads like a sequence of required steps
+        config := loadPrimaryConfig().
+            MapIfFailed(func(err error) (Config, error) {
+                log.Println("Primary config failed, trying backup")
+                return loadBackupConfig()
+            }).
+            OrPanic()  // Panic if both configs fail (caught by Do)
+
+        validateConfig(config).OrPanic()  // Panic if validation fails
+
+        db := connectDB(config).OrPanic()  // Panic if DB connection fails
+
+        return maybe.Just((Config, Database){config, db})
+    }).MapIfFailed(func(err error) ((Config, Database), error) {
+        // All panics from OrPanic() are caught here as errors
+        log.Printf("Initialization failed: %v", err)
+        return (Config, Database){}, err
+    })
+}
+
+// Example: Multi-step data processing pipeline
+func processUserData(userID int) maybe.Maybe[string] {
+    return maybe.Do(func() maybe.Maybe[string] {
+        // Fetch user (panic if not found)
+        user := fetchUser(userID).
+            MapIfEmpty(func() (User, error) {
+                return User{}, fmt.Errorf("user %d not found", userID)
+            }).
+            OrPanic()
+
+        // Validate user (panic if invalid)
+        validateUser(user).OrPanic()
+
+        // Fetch permissions (panic if fails)
+        perms := fetchPermissions(user.ID).OrPanic()
+
+        // Check authorization (panic if unauthorized)
+        checkAuthorization(user, perms).OrPanic()
+
+        // Process data (panic if processing fails)
+        result := processData(user).OrPanic()
+
+        return maybe.Just(result)
+    }).MapIfFailed(func(err error) (string, error) {
+        // Any failure in the chain is caught here
+        log.Printf("User data processing failed: %v", err)
+        // Can choose to recover or propagate
+        return "", fmt.Errorf("processing failed for user %d: %w", userID, err)
+    })
+}
+
+// Example: Configuration loading with fallback chain
+func loadConfigWithFallbacks() maybe.Maybe[Config] {
+    return maybe.Do(func() maybe.Maybe[Config] {
+        // Try each config source in order
+        // If any succeeds, we're done (OrPanic returns the value)
+        // If all fail, the last panic is caught by Do
+
+        config := loadFromFile("config.json").
+            MapIfFailed(func(err error) (Config, error) {
+                log.Println("File config failed, trying environment")
+                return loadFromEnv()
+            }).
+            MapIfFailed(func(err error) (Config, error) {
+                log.Println("Env config failed, trying defaults")
+                return loadDefaults()
+            }).
+            OrPanic()  // All sources failed - panic (caught by Do)
+
+        // Validate whatever config we got
+        validateConfig(config).OrPanic()
+
+        return maybe.Just(config)
+    }).MapIfFailed(func(err error) (Config, error) {
+        // If all config sources AND defaults failed, this is serious
+        log.Fatal("Cannot load any configuration:", err)
+        return Config{}, err
+    })
+}
+
+// Example: Batch processing with early termination
+func processBatch(items []Item) maybe.Maybe[[]Result] {
+    return maybe.Do(func() maybe.Maybe[[]Result] {
+        var results []Result
+
+        for i, item := range items {
+            // Process each item, panic on first failure
+            result := processItem(item).
+                MapIfEmpty(func() (Result, error) {
+                    return Result{}, fmt.Errorf("item %d: empty result", i)
+                }).
+                OrPanic()  // Fail fast on first error
+
+            results = append(results, result)
+        }
+
+        return maybe.Just(results)
+    }).MapIfFailed(func(err error) ([]Result, error) {
+        log.Printf("Batch processing failed: %v", err)
+        // Decide: return partial results or full error?
+        return nil, err
+    })
+}
+
+func main() {
+    // The declarative style makes the happy path clear
+    result := initAppDeclarative().OrElseGet(func(err error) (Config, Database) {
+        log.Fatal("Application initialization failed:", err)
+        return (Config, Database){}
+    })
+
+    fmt.Printf("App initialized: %+v\n", result)
+}
+```
+
+**Key benefits of Do + OrPanic pattern:**
+
+1. **Flat structure**: No deeply nested `if err != nil` blocks
+2. **Readable flow**: Code reads like a sequence of steps
+3. **Fail-fast**: OrPanic() immediately exits on error
+4. **Safe**: Do() catches all panics and converts them to Failures
+5. **Composable**: Easy to add MapIfFailed for recovery/transformation
+6. **Type-safe**: All handled through the type system
+
+**When to use this pattern:**
+
+✅ **Use when:**
+- You have multi-step operations where each step must succeed
+- You want declarative, easy-to-read code
+- You need panic recovery for safety
+- The happy path is the primary concern
+
+❌ **Avoid when:**
+- Individual step failures need custom handling
+- Partial results are acceptable
+- You need fine-grained control over error propagation
+- Performance is critical (slight overhead from panic recovery)
+
 ### Extracting Values with Get
 
 ```go
@@ -664,6 +857,48 @@ config := fetchConfig().
     Filter(func(c Config) bool { return c.IsValid() }).
     OrElseDefault(DefaultConfig)
 ```
+
+### Unwrapping Values with OrPanic
+
+```go
+// OrPanic unwraps the value or panics for None/Failure
+// Use when you're certain a value exists or want to fail fast
+
+// Some: returns the value
+value := maybe.Just(42).OrPanic()
+// Returns: 42, never panics
+
+// None: panics with "empty"
+value := maybe.Empty[int]().OrPanic()
+// Panics: "empty"
+
+// Failure: panics with the error
+value := maybe.Failed[int](errors.New("failed")).OrPanic()
+// Panics: error("failed")
+
+// Practical use case 1: Initialization code (fail fast)
+var (
+    config = loadConfig().OrPanic()  // halt program if config fails
+    db     = connectDB().OrPanic()   // halt program if DB unavailable
+)
+
+// Practical use case 2: Tests (immediate failure visibility)
+func TestUserParsing(t *testing.T) {
+    user := parseUser(validData).OrPanic()  // test fails immediately if parsing fails
+    assert.Equal(t, "Alice", user.Name)
+}
+
+// Practical use case 3: Imperative code that "should never fail"
+// (Use cautiously - explicit error handling is usually better)
+user := findUserByID(adminID).OrPanic()  // admin always exists in production
+processAdmin(user)
+```
+
+**⚠️ Important:** OrPanic should be used sparingly, primarily in:
+- Initialization code where failure should halt the program
+- Test code where failures should be immediately visible
+- Combined with `Do()` for controlled panic recovery (see declarative examples below)
+- Situations where a missing value indicates a programming error, not a runtime condition
 
 ### Error Recovery and Transformation with MapIfEmpty and MapIfFailed
 
@@ -860,6 +1095,7 @@ type Maybe[T any] interface {
     Get() (T, bool, error)
     OrElseGet(fn func(error) T) T
     OrElseDefault(v T) T
+    OrPanic() T
 
     // Error handling and recovery
     MapIfEmpty(fn func() (T, error)) Maybe[T]
@@ -879,6 +1115,7 @@ func (s Some[T]) Then(fn func(T)) Maybe[T]
 func (s Some[T]) Get() (T, bool, error)
 func (s Some[T]) OrElseGet(fn func(error) T) T
 func (s Some[T]) OrElseDefault(v T) T
+func (s Some[T]) OrPanic() T
 func (s Some[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
 func (s Some[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -895,6 +1132,7 @@ func (n None[T]) Then(fn func(T)) Maybe[T]
 func (n None[T]) Get() (T, bool, error)
 func (n None[T]) OrElseGet(fn func(error) T) T
 func (n None[T]) OrElseDefault(v T) T
+func (n None[T]) OrPanic() T
 func (n None[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
 func (n None[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -911,6 +1149,7 @@ func (f Failure[T]) Then(fn func(T)) Maybe[T]
 func (f Failure[T]) Get() (T, bool, error)
 func (f Failure[T]) OrElseGet(fn func(error) T) T
 func (f Failure[T]) OrElseDefault(v T) T
+func (f Failure[T]) OrPanic() T
 func (f Failure[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
 func (f Failure[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]

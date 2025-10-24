@@ -1011,3 +1011,97 @@ func TestFailure_MapIfFailed(t *testing.T) {
 		}
 	})
 }
+
+func TestFailure_OrPanic(t *testing.T) {
+	t.Run("panics with the wrapped error", func(t *testing.T) {
+		testErr := errors.New("test error")
+		failure := maybe.Failed[int](testErr)
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for Failure")
+			}
+			recoveredErr, ok := r.(error)
+			if !ok {
+				t.Fatalf("expected error, got %T", r)
+			}
+			if recoveredErr != testErr {
+				t.Errorf("expected %v, got %v", testErr, recoveredErr)
+			}
+		}()
+
+		failure.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+
+	t.Run("panics with error for different types", func(t *testing.T) {
+		testErr := errors.New("string error")
+		failure := maybe.Failed[string](testErr)
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for Failure")
+			}
+			recoveredErr, ok := r.(error)
+			if !ok {
+				t.Fatalf("expected error, got %T", r)
+			}
+			if recoveredErr != testErr {
+				t.Errorf("expected %v, got %v", testErr, recoveredErr)
+			}
+		}()
+
+		failure.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+
+	t.Run("panics with error for complex types", func(t *testing.T) {
+		type User struct {
+			Name string
+			ID   int
+		}
+		testErr := errors.New("user not found")
+		failure := maybe.Failed[User](testErr)
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for Failure")
+			}
+			recoveredErr, ok := r.(error)
+			if !ok {
+				t.Fatalf("expected error, got %T", r)
+			}
+			if recoveredErr != testErr {
+				t.Errorf("expected %v, got %v", testErr, recoveredErr)
+			}
+		}()
+
+		failure.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+
+	t.Run("panic message matches error message", func(t *testing.T) {
+		testErr := errors.New("database connection failed")
+		failure := maybe.Failed[int](testErr)
+
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("OrPanic should panic for Failure")
+			}
+			recoveredErr, ok := r.(error)
+			if !ok {
+				t.Fatalf("expected error, got %T", r)
+			}
+			if recoveredErr.Error() != "database connection failed" {
+				t.Errorf("expected 'database connection failed', got %v", recoveredErr.Error())
+			}
+		}()
+
+		failure.OrPanic()
+		t.Fatal("OrPanic should have panicked")
+	})
+}
