@@ -267,6 +267,51 @@ type Maybe[T any] interface {
 	//	user := parseUser(data).OrPanic()  // test fails immediately if parsing fails
 	OrPanic() T
 
+	// OrError converts Maybe to Go's standard (T, error) tuple.
+	// This method provides seamless interoperability with Go's idiomatic error handling,
+	// allowing Maybe-based code to integrate naturally with standard Go functions and libraries.
+	//
+	// Behavior:
+	//   - Some: returns (value, nil) - has value, no error
+	//   - None: returns (zero, error("empty")) - no value, returns "empty" error
+	//   - Failure: returns (zero, error) - no value, returns the wrapped error
+	//
+	// Use Cases:
+	//   - Converting Maybe results to standard Go error handling
+	//   - Integrating with existing Go codebases that use (T, error) pattern
+	//   - Declarative error handling with Try + OrError for flat code structure
+	//   - Building bridges between functional and imperative Go code
+	//
+	// Example:
+	//
+	//	// Simple conversion to Go idiom
+	//	func getUser(id int) (User, error) {
+	//	    return findUser(id).OrError()  // Maybe[User] → (User, error)
+	//	}
+	//
+	//	// Integrating with standard library
+	//	data, err := loadData().OrError()
+	//	if err != nil {
+	//	    return err
+	//	}
+	//	json.Marshal(data)  // Works with standard Go functions
+	//
+	//	// Declarative style with Try + OrError (see "Declarative Error Handling with Try + OrError" section)
+	//	result, err := Try(func() (Result, error) {
+	//	    config, err := loadConfig().OrError()
+	//	    if err != nil {
+	//	        return Result{}, fmt.Errorf("load config: %w", err)
+	//	    }
+	//
+	//	    user, err := fetchUser(config.UserID).OrError()
+	//	    if err != nil {
+	//	        return Result{}, fmt.Errorf("fetch user: %w", err)
+	//	    }
+	//
+	//	    return processUser(user).OrError()
+	//	}).OrError()
+	OrError() (T, error)
+
 	// MatchThen performs pattern matching on the Maybe type and executes the appropriate function for side effects.
 	// This provides a type-safe way to handle all three Maybe states (Some, None, Failure) with custom behavior.
 	// The function returns the original Maybe unchanged, making it suitable for chaining.

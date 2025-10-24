@@ -945,3 +945,88 @@ func TestSome_OrPanic(t *testing.T) {
 		}
 	})
 }
+
+func TestSome_OrError(t *testing.T) {
+	t.Run("returns value with nil error", func(t *testing.T) {
+		some := maybe.Just(42)
+		value, err := some.OrError()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+
+	t.Run("returns string value with nil error", func(t *testing.T) {
+		some := maybe.Just("hello")
+		value, err := some.OrError()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != "hello" {
+			t.Errorf("expected 'hello', got %s", value)
+		}
+	})
+
+	t.Run("works with zero values", func(t *testing.T) {
+		some := maybe.Just(0)
+		value, err := some.OrError()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != 0 {
+			t.Errorf("expected 0, got %d", value)
+		}
+	})
+
+	t.Run("works with complex types", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+		config := Config{Host: "localhost", Port: 8080}
+		some := maybe.Just(config)
+		value, err := some.OrError()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value.Host != "localhost" || value.Port != 8080 {
+			t.Errorf("expected Config{localhost, 8080}, got %+v", value)
+		}
+	})
+
+	t.Run("works with pointers", func(t *testing.T) {
+		val := 100
+		some := maybe.Just(&val)
+		ptr, err := some.OrError()
+
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if ptr == nil {
+			t.Fatal("expected non-nil pointer")
+		}
+		if *ptr != 100 {
+			t.Errorf("expected 100, got %d", *ptr)
+		}
+	})
+
+	t.Run("can be used as function return", func(t *testing.T) {
+		getNumber := func() (int, error) {
+			return maybe.Just(42).OrError()
+		}
+
+		value, err := getNumber()
+		if err != nil {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if value != 42 {
+			t.Errorf("expected 42, got %d", value)
+		}
+	})
+}

@@ -781,3 +781,86 @@ func TestNone_OrPanic(t *testing.T) {
 		t.Fatal("OrPanic should have panicked")
 	})
 }
+
+func TestNone_OrError(t *testing.T) {
+	t.Run("returns zero value with empty error", func(t *testing.T) {
+		none := maybe.Empty[int]()
+		value, err := none.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "empty" {
+			t.Errorf("expected error message 'empty', got %v", err.Error())
+		}
+		if value != 0 {
+			t.Errorf("expected zero value 0, got %d", value)
+		}
+	})
+
+	t.Run("returns zero value for string type", func(t *testing.T) {
+		none := maybe.Empty[string]()
+		value, err := none.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "empty" {
+			t.Errorf("expected error message 'empty', got %v", err.Error())
+		}
+		if value != "" {
+			t.Errorf("expected empty string, got %s", value)
+		}
+	})
+
+	t.Run("returns zero value for complex types", func(t *testing.T) {
+		type User struct {
+			Name string
+			ID   int
+		}
+		none := maybe.Empty[User]()
+		value, err := none.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "empty" {
+			t.Errorf("expected error message 'empty', got %v", err.Error())
+		}
+		if value.Name != "" || value.ID != 0 {
+			t.Errorf("expected zero User, got %+v", value)
+		}
+	})
+
+	t.Run("returns nil for pointer types", func(t *testing.T) {
+		none := maybe.Empty[*int]()
+		value, err := none.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "empty" {
+			t.Errorf("expected error message 'empty', got %v", err.Error())
+		}
+		if value != nil {
+			t.Errorf("expected nil pointer, got %v", value)
+		}
+	})
+
+	t.Run("can be used as function return", func(t *testing.T) {
+		getUser := func() (string, error) {
+			return maybe.Empty[string]().OrError()
+		}
+
+		value, err := getUser()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "empty" {
+			t.Errorf("expected error message 'empty', got %v", err.Error())
+		}
+		if value != "" {
+			t.Errorf("expected empty string, got %s", value)
+		}
+	})
+}

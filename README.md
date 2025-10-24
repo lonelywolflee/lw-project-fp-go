@@ -782,6 +782,268 @@ func main() {
 - You need fine-grained control over error propagation
 - Performance is critical (slight overhead from panic recovery)
 
+### Declarative Error Handling with Try + OrError
+
+Combining `Try()` and `OrError()` provides another powerful declarative pattern that integrates naturally with Go's standard error handling. Unlike Do + OrPanic (which uses panic recovery), Try + OrError uses early returns to create flat, readable code that works seamlessly with existing Go codebases.
+
+**Why this pattern is useful:**
+- **Flat structure**: No nested error checking or panic handling
+- **Go-idiomatic**: Works with standard (T, error) pattern
+- **Early return**: OrError() propagates errors naturally
+- **Compatible**: Integrates with existing Go code without conversion
+
+```go
+package main
+
+import (
+    "errors"
+    "fmt"
+    "log"
+    "github.com/lonelywolflee/lw-project-fp-go/maybe"
+)
+
+type User struct {
+    ID   int
+    Name string
+}
+
+type Config struct {
+    DBURL string
+    Port  int
+}
+
+// Traditional nested error handling (verbose)
+func processUserTraditional(userID int) (string, error) {
+    config, err := loadConfig()
+    if err != nil {
+        return "", fmt.Errorf("load config: %w", err)
+    }
+
+    user, err := fetchUser(userID, config)
+    if err != nil {
+        return "", fmt.Errorf("fetch user: %w", err)
+    }
+
+    if !isActive(user) {
+        return "", errors.New("user not active")
+    }
+
+    perms, err := getPermissions(user.ID)
+    if err != nil {
+        return "", fmt.Errorf("get permissions: %w", err)
+    }
+
+    result, err := process(user, perms)
+    if err != nil {
+        return "", fmt.Errorf("process: %w", err)
+    }
+
+    return result, nil
+}
+
+// Declarative style with Try + OrError (flat structure)
+func processUserDeclarative(userID int) (string, error) {
+    return maybe.Try(func() (string, error) {
+        // Each OrError() returns early on failure
+        // Code reads like a series of required steps
+        config, err := loadConfig().OrError()
+        if err != nil {
+            return "", fmt.Errorf("load config: %w", err)
+        }
+
+        user, err := fetchUser(userID, config).OrError()
+        if err != nil {
+            return "", fmt.Errorf("fetch user: %w", err)
+        }
+
+        // Can mix with regular Go checks
+        if !isActive(user) {
+            return "", errors.New("user not active")
+        }
+
+        perms, err := getPermissions(user.ID).OrError()
+        if err != nil {
+            return "", fmt.Errorf("get permissions: %w", err)
+        }
+
+        return process(user, perms).OrError()
+    }).OrError()
+}
+
+// Example: Multi-source configuration loading
+func loadConfigWithFallback() (Config, error) {
+    return maybe.Try(func() (Config, error) {
+        // Try primary source first
+        config, err := loadFromFile("config.json").OrError()
+        if err == nil {
+            return config, nil
+        }
+        log.Printf("File config failed: %v, trying environment", err)
+
+        // Fallback to environment
+        config, err = loadFromEnv().OrError()
+        if err == nil {
+            return config, nil
+        }
+        log.Printf("Env config failed: %v, using defaults", err)
+
+        // Last resort: defaults
+        return DefaultConfig, nil
+    }).OrError()
+}
+
+// Example: Database transaction pattern
+func updateUserTransaction(userID int, updates UserUpdates) error {
+    _, err := maybe.Try(func() (bool, error) {
+        // Begin transaction
+        tx, err := db.Begin().OrError()
+        if err != nil {
+            return false, fmt.Errorf("begin transaction: %w", err)
+        }
+        defer tx.Rollback()  // Rollback if commit not reached
+
+        // Fetch user
+        user, err := fetchUserForUpdate(tx, userID).OrError()
+        if err != nil {
+            return false, fmt.Errorf("fetch user: %w", err)
+        }
+
+        // Validate updates
+        _, err = validateUpdates(user, updates).OrError()
+        if err != nil {
+            return false, fmt.Errorf("validate: %w", err)
+        }
+
+        // Apply updates
+        _, err = applyUpdates(tx, user, updates).OrError()
+        if err != nil {
+            return false, fmt.Errorf("apply updates: %w", err)
+        }
+
+        // Commit transaction
+        if err := tx.Commit(); err != nil {
+            return false, fmt.Errorf("commit: %w", err)
+        }
+
+        return true, nil
+    }).OrError()
+
+    return err
+}
+
+// Example: API call chain with error context
+func fetchUserProfile(userID int) (Profile, error) {
+    return maybe.Try(func() (Profile, error) {
+        // Fetch user basic info
+        user, err := apiClient.GetUser(userID).OrError()
+        if err != nil {
+            return Profile{}, fmt.Errorf("get user %d: %w", userID, err)
+        }
+
+        // Fetch additional data in parallel
+        posts, err := apiClient.GetUserPosts(userID).OrError()
+        if err != nil {
+            return Profile{}, fmt.Errorf("get posts for user %d: %w", userID, err)
+        }
+
+        followers, err := apiClient.GetFollowers(userID).OrError()
+        if err != nil {
+            return Profile{}, fmt.Errorf("get followers for user %d: %w", userID, err)
+        }
+
+        // Combine into profile
+        profile := Profile{
+            User:      user,
+            Posts:     posts,
+            Followers: followers,
+        }
+
+        return profile, nil
+    }).OrError()
+}
+
+// Example: File processing pipeline
+func processDataFile(filename string) (ProcessedData, error) {
+    return maybe.Try(func() (ProcessedData, error) {
+        // Read file
+        data, err := readFile(filename).OrError()
+        if err != nil {
+            return ProcessedData{}, fmt.Errorf("read file: %w", err)
+        }
+
+        // Parse JSON
+        parsed, err := parseJSON(data).OrError()
+        if err != nil {
+            return ProcessedData{}, fmt.Errorf("parse JSON: %w", err)
+        }
+
+        // Validate schema
+        _, err = validateSchema(parsed).OrError()
+        if err != nil {
+            return ProcessedData{}, fmt.Errorf("validate schema: %w", err)
+        }
+
+        // Transform data
+        transformed, err := transformData(parsed).OrError()
+        if err != nil {
+            return ProcessedData{}, fmt.Errorf("transform: %w", err)
+        }
+
+        // Enrich with external data
+        enriched, err := enrichData(transformed).OrError()
+        if err != nil {
+            return ProcessedData{}, fmt.Errorf("enrich: %w", err)
+        }
+
+        return enriched, nil
+    }).OrError()
+}
+
+func main() {
+    // Clean, flat error handling
+    result, err := processUserDeclarative(123)
+    if err != nil {
+        log.Printf("Failed to process user: %v", err)
+        return
+    }
+
+    fmt.Printf("Success: %s\n", result)
+}
+```
+
+**Key benefits of Try + OrError pattern:**
+
+1. **Flat structure**: No nested `if err != nil` blocks
+2. **Go-idiomatic**: Uses standard (T, error) return pattern
+3. **Early return**: OrError() enables natural error propagation
+4. **Contextual errors**: Easy to wrap errors with fmt.Errorf
+5. **Compatible**: Works with existing Go libraries
+6. **Type-safe**: All handled through the type system
+
+**Comparison: Try + OrError vs Do + OrPanic**
+
+| Feature | Try + OrError | Do + OrPanic |
+|---------|---------------|--------------|
+| **Error handling** | Explicit with `if err != nil` | Implicit via panic recovery |
+| **Integration** | Natural with Go code | Requires understanding panics |
+| **Error wrapping** | Easy with fmt.Errorf | Requires MapIfFailed |
+| **Performance** | No panic overhead | Slight panic recovery cost |
+| **Use case** | Standard Go integration | Pure functional style |
+
+**When to use Try + OrError:**
+
+✅ **Use when:**
+- Integrating with existing Go codebases
+- You need explicit error handling with context
+- Working with Go standard library functions
+- Building public APIs with (T, error) signatures
+- Team prefers Go idioms over functional patterns
+
+❌ **Avoid when:**
+- You want purely functional style (use Do + OrPanic)
+- No need for error context wrapping
+- Minimal boilerplate is priority
+
 ### Extracting Values with Get
 
 ```go
@@ -899,6 +1161,64 @@ processAdmin(user)
 - Test code where failures should be immediately visible
 - Combined with `Do()` for controlled panic recovery (see declarative examples below)
 - Situations where a missing value indicates a programming error, not a runtime condition
+
+### Converting to Go Errors with OrError
+
+```go
+// OrError converts Maybe to Go's standard (T, error) tuple
+// Enables seamless integration with existing Go codebases
+
+// Some: returns (value, nil)
+value, err := maybe.Just(42).OrError()
+// Returns: 42, nil
+
+// None: returns (zero, error("empty"))
+value, err := maybe.Empty[int]().OrError()
+// Returns: 0, error("empty")
+
+// Failure: returns (zero, error)
+value, err := maybe.Failed[int](errors.New("failed")).OrError()
+// Returns: 0, error("failed")
+
+// Practical use case 1: Bridge to standard Go functions
+func getUserData(id int) (User, error) {
+    return findUser(id).             // Returns Maybe[User]
+        Filter(isActive).            // Maybe[User]
+        OrError()                    // Converts to (User, error)
+}
+
+// Practical use case 2: Integration with existing code
+func processConfig() error {
+    config, err := loadConfig().OrError()  // Maybe → (Config, error)
+    if err != nil {
+        return fmt.Errorf("config load failed: %w", err)
+    }
+
+    // Use config with standard Go code
+    return validateAndApply(config)
+}
+
+// Practical use case 3: Building API responses
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+    data, err := fetchData(r.Context()).
+        Map(transform).
+        Filter(validate).
+        OrError()
+
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    json.NewEncoder(w).Encode(data)
+}
+```
+
+**When to use OrError:**
+- ✅ Interfacing with existing Go code that uses (T, error)
+- ✅ Building APIs or libraries with standard Go signatures
+- ✅ Incremental adoption of Maybe monad in legacy codebases
+- ✅ Declarative error handling with Try (see examples below)
 
 ### Error Recovery and Transformation with MapIfEmpty and MapIfFailed
 
@@ -1096,6 +1416,7 @@ type Maybe[T any] interface {
     OrElseGet(fn func(error) T) T
     OrElseDefault(v T) T
     OrPanic() T
+    OrError() (T, error)
 
     // Error handling and recovery
     MapIfEmpty(fn func() (T, error)) Maybe[T]
@@ -1116,6 +1437,7 @@ func (s Some[T]) Get() (T, bool, error)
 func (s Some[T]) OrElseGet(fn func(error) T) T
 func (s Some[T]) OrElseDefault(v T) T
 func (s Some[T]) OrPanic() T
+func (s Some[T]) OrError() (T, error)
 func (s Some[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
 func (s Some[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (s Some[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -1133,6 +1455,7 @@ func (n None[T]) Get() (T, bool, error)
 func (n None[T]) OrElseGet(fn func(error) T) T
 func (n None[T]) OrElseDefault(v T) T
 func (n None[T]) OrPanic() T
+func (n None[T]) OrError() (T, error)
 func (n None[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
 func (n None[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (n None[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]
@@ -1150,6 +1473,7 @@ func (f Failure[T]) Get() (T, bool, error)
 func (f Failure[T]) OrElseGet(fn func(error) T) T
 func (f Failure[T]) OrElseDefault(v T) T
 func (f Failure[T]) OrPanic() T
+func (f Failure[T]) OrError() (T, error)
 func (f Failure[T]) MapIfEmpty(fn func() (T, error)) Maybe[T]
 func (f Failure[T]) MapIfFailed(fn func(error) (T, error)) Maybe[T]
 func (f Failure[T]) MatchThen(someFn func(T), noneFn func(), failureFn func(error)) Maybe[T]

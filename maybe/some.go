@@ -151,6 +151,23 @@ func (s Some[T]) OrPanic() T {
 	return s.v
 }
 
+// OrError converts Some to Go's standard (T, error) tuple.
+// Since Some contains a value, it returns (value, nil) with no error.
+// This enables seamless integration with Go's idiomatic error handling.
+//
+// Example:
+//
+//	some := Just(42)
+//	value, err := some.OrError() // returns 42, nil
+//
+//	// Integrating with standard Go functions
+//	func getConfig() (Config, error) {
+//	    return loadConfig().OrError()  // Maybe[Config] → (Config, error)
+//	}
+func (s Some[T]) OrError() (T, error) {
+	return s.v, nil
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

@@ -152,6 +152,28 @@ func (f Failure[T]) OrPanic() T {
 	panic(f.e)
 }
 
+// OrError converts Failure to Go's standard (T, error) tuple.
+// Since Failure contains an error, it returns (zero, error) with the wrapped error.
+// This provides natural integration with Go's error handling patterns.
+//
+// Example:
+//
+//	failure := Failed[int](errors.New("connection failed"))
+//	value, err := failure.OrError() // returns 0, error("connection failed")
+//
+//	// Propagating errors in Go style
+//	func processData(id int) (Result, error) {
+//	    data, err := fetchData(id).OrError()  // Maybe[Data] → (Data, error)
+//	    if err != nil {
+//	        return Result{}, fmt.Errorf("fetch failed: %w", err)
+//	    }
+//	    return transform(data), nil
+//	}
+func (f Failure[T]) OrError() (T, error) {
+	var zero T
+	return zero, f.e
+}
+
 // MatchThen applies the given functions based on the type of Maybe.
 // If Maybe is Some, the some function is called with the value inside Some.
 // If Maybe is None, the none function is called.

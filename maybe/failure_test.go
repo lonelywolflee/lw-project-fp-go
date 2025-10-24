@@ -2,6 +2,7 @@ package maybe_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/lonelywolflee/lw-project-fp-go/maybe"
@@ -1103,5 +1104,133 @@ func TestFailure_OrPanic(t *testing.T) {
 
 		failure.OrPanic()
 		t.Fatal("OrPanic should have panicked")
+	})
+}
+
+func TestFailure_OrError(t *testing.T) {
+	t.Run("returns zero value with wrapped error", func(t *testing.T) {
+		testErr := errors.New("test error")
+		failure := maybe.Failed[int](testErr)
+		value, err := failure.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
+		}
+		if value != 0 {
+			t.Errorf("expected zero value 0, got %d", value)
+		}
+	})
+
+	t.Run("returns zero value for string type", func(t *testing.T) {
+		testErr := errors.New("string error")
+		failure := maybe.Failed[string](testErr)
+		value, err := failure.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
+		}
+		if value != "" {
+			t.Errorf("expected empty string, got %s", value)
+		}
+	})
+
+	t.Run("preserves error message", func(t *testing.T) {
+		testErr := errors.New("database connection failed")
+		failure := maybe.Failed[int](testErr)
+		value, err := failure.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err.Error() != "database connection failed" {
+			t.Errorf("expected 'database connection failed', got %v", err.Error())
+		}
+		if value != 0 {
+			t.Errorf("expected zero value 0, got %d", value)
+		}
+	})
+
+	t.Run("returns zero value for complex types", func(t *testing.T) {
+		type Config struct {
+			Host string
+			Port int
+		}
+		testErr := errors.New("config error")
+		failure := maybe.Failed[Config](testErr)
+		value, err := failure.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
+		}
+		if value.Host != "" || value.Port != 0 {
+			t.Errorf("expected zero Config, got %+v", value)
+		}
+	})
+
+	t.Run("returns nil for pointer types", func(t *testing.T) {
+		testErr := errors.New("pointer error")
+		failure := maybe.Failed[*int](testErr)
+		value, err := failure.OrError()
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
+		}
+		if value != nil {
+			t.Errorf("expected nil pointer, got %v", value)
+		}
+	})
+
+	t.Run("can be used as function return", func(t *testing.T) {
+		testErr := errors.New("function error")
+		getUser := func() (string, error) {
+			return maybe.Failed[string](testErr).OrError()
+		}
+
+		value, err := getUser()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if err != testErr {
+			t.Errorf("expected %v, got %v", testErr, err)
+		}
+		if value != "" {
+			t.Errorf("expected empty string, got %s", value)
+		}
+	})
+
+	t.Run("enables error wrapping", func(t *testing.T) {
+		originalErr := errors.New("original error")
+		failure := maybe.Failed[int](originalErr)
+
+		wrapError := func() (int, error) {
+			val, err := failure.OrError()
+			if err != nil {
+				return val, fmt.Errorf("wrapped: %w", err)
+			}
+			return val, nil
+		}
+
+		value, err := wrapError()
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, originalErr) {
+			t.Errorf("error should wrap original error")
+		}
+		if value != 0 {
+			t.Errorf("expected zero value 0, got %d", value)
+		}
 	})
 }

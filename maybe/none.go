@@ -1,5 +1,7 @@
 package maybe
 
+import "errors"
+
 // None represents a Maybe that contains no value.
 // It is one of the three concrete implementations of the Maybe interface.
 // None represents the absence of a value without indicating an error.
@@ -137,6 +139,24 @@ func (n None[T]) OrElseDefault(v T) T {
 //	value := none.OrPanic() // panics with "empty"
 func (n None[T]) OrPanic() T {
 	panic("empty")
+}
+
+// OrError converts None to Go's standard (T, error) tuple.
+// Since None represents absence without a specific error, it returns (zero, error("empty")).
+// This allows None to be treated as an error condition in standard Go error handling.
+//
+// Example:
+//
+//	none := Empty[int]()
+//	value, err := none.OrError() // returns 0, error("empty")
+//
+//	// In a function returning (T, error)
+//	func findUser(id int) (User, error) {
+//	    return queryDB(id).OrError()  // None becomes an "empty" error
+//	}
+func (n None[T]) OrError() (T, error) {
+	var zero T
+	return zero, errors.New("empty")
 }
 
 // MatchThen applies the given functions based on the type of Maybe.
